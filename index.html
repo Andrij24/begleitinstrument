@@ -203,38 +203,55 @@ document.getElementById('audioToggle').onclick = async () => {
     }
 };
 
-// ZIP EXPORT LOGIK
+// 3. ROBUSTERER ZIP-EXPORT
 document.getElementById('exportFull').onclick = async () => {
-    const walk = state.walks[state.walks.length - 1] || state.current;
-    if (!walk) return alert("Kein Walk zum Exportieren gefunden!");
-    
-    const zip = new JSZip();
-    const mediaFolder = zip.folder("media");
-    let infoText = `Walk ID: ${walk.id}\nAnzahl Einträge: ${walk.entries.length}\n\nEreignisse:\n`;
+    const walk = state.current || state.walks[state.walks.length - 1];
+    if (!walk) return alert("Kein aktiver oder gespeicherter Walk vorhanden.");
 
-    // Karte als Bild einfangen
-    const canvas = await html2canvas(document.getElementById('map'), { useCORS: true });
-    const imgData = canvas.toDataURL("image/jpeg", 0.8);
-    zip.file("karte.jpg", imgData.split(',')[1], {base64: true});
+    const btn = document.getElementById('exportFull');
+    btn.innerText = "⏳ EXPORTIERE...";
+    btn.disabled = true;
 
-    // Einträge verarbeiten
-    walk.entries.forEach((e, i) => {
-        infoText += `[${e.timestamp}] Typ: ${e.type}\n`;
-        if (e.photo) {
-            mediaFolder.file(`foto_${i}.jpg`, e.photo.split(',')[1], {base64: true});
-        }
-        if (e.audioBlob) {
-            mediaFolder.file(`audio_${i}.webm`, e.audioBlob);
-        }
-    });
+    try {
+        const zip = new JSZip();
+        const mediaFolder = zip.folder("medien");
+        
+        // Screenshot der Karte (Wichtig: useCORS muss aktiv sein)
+        const canvas = await html2canvas(document.getElementById('map'), { 
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: (el) => el.classList.contains('top-ui') || el.classList.contains('side-ui')
+        });
+        
+        zip.file("karte_uebersicht.jpg", canvas.toDataURL("image/jpeg", 0.9).split(',')[1], {base64: true});
 
-    zip.file("info.txt", infoText);
-    
-    const content = await zip.generateAsync({type:"blob"});
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(content);
-    link.download = `Spaziergang_${walk.id.replace(/:/g, '-')}.zip`;
-    link.click();
+        // JSON Daten für GIS-Weiterverarbeitung
+        zip.file("daten.json", JSON.stringify(walk, null, 2));
+
+        // Medien-Dateien
+        walk.entries.forEach((e, i) => {
+            const timePrefix = e.timestamp.replace(/:/g, '-');
+            if (e.photo) {
+                zip.file(`foto_${timePrefix}_${i}.jpg`, e.photo.split(',')[1], {base64: true});
+            }
+            if (e.audioBlob) {
+                zip.file(`audio_${timePrefix}_${i}.webm`, e.audioBlob);
+            }
+        });
+
+        const content = await zip.generateAsync({type:"blob"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = `Export_Walk_${walk.id}.zip`;
+        link.click();
+    } catch (err) {
+        console.error("Export fehlgeschlagen", err);
+        alert("Fehler beim Export.");
+    } finally {
+        btn.innerText = "ZIP EXPORT";
+        btn.disabled = false;
+    }
+};
 };
 
 function updateArchiveUI() {
@@ -269,3 +286,4 @@ initMap();
 </script>
 </body>
 </html>
+
