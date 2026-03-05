@@ -85,68 +85,63 @@ const state = {
     }
 };
  
-let liveMarker = null;
-let accuracyCircle = null;
 let lastValidLatLng = null;
 
-function initMap() {
-    state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
-    state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(state.map);
-    Object.values(state.layers).forEach(l => l.addTo(state.map));
+navigator.geolocation.watchPosition(pos => {
+    const { latitude, longitude, accuracy } = pos.coords;
+    const currentLatLng = L.latLng(latitude, longitude);
 
-    // Ebenen-Schalter
-    const toggles = {'toggleTempo': 'tempo', 'toggleMood': 'mood', 'toggleThought': 'thought', 'toggleSense': 'sense', 'togglePhoto': 'photo', 'toggleAudio': 'audio'};
-    Object.entries(toggles).forEach(([id, layer]) => {
-        document.getElementById(id).onchange = (e) => {
-            if (e.target.checked) state.map.addLayer(state.layers[layer]);
-            else state.map.removeLayer(state.layers[layer]);
-        };
-    });
+    // 1. VISUELLES FEEDBACK (Immer anzeigen)
+    if (!accuracyCircle) {
+        accuracyCircle = L.circle(currentLatLng, { radius: accuracy, color: '#2563eb', fillOpacity: 0.1, weight: 1 }).addTo(state.map);
+    } else {
+        accuracyCircle.setLatLng(currentLatLng).setRadius(accuracy);
+    }
 
-    // Hochpräzises GPS mit Filter
-    navigator.geolocation.watchPosition(pos => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        const currentLatLng = L.latLng(latitude, longitude);
+    // 2. INTELLIGENTER FILTER
+    // Wir lassen am Anfang etwas mehr Spielraum (30m) und werden strenger, sobald das Signal steht.
+    const threshold = (state.current && state.current.route.length > 5) ? 15 : 30;
 
-        // 1. Genauigkeits-Kreis aktualisieren
-        if (!accuracyCircle) {
-            accuracyCircle = L.circle(currentLatLng, { 
-                radius: accuracy, 
-                color: '#2563eb', 
-                fillOpacity: 0.1, 
-                weight: 1, 
-                interactive: false 
-            }).addTo(state.map);
-        } else {
-            accuracyCircle.setLatLng(currentLatLng).setRadius(accuracy);
-            // Visuelles Feedback: Blau = OK, Orange = zu ungenau für den Filter
-            accuracyCircle.setStyle({color: accuracy <= 5 ? '#2563eb' : 'orange'});
-        }
+    if (accuracy > threshold) {
+        accuracyCircle.setStyle({color: 'red'}); // Signal zu schlecht
+        return; 
+    }
+    accuracyCircle.setStyle({color: '#2563eb'});
 
-        // 2. PRÄZISIONS-FILTER: Nur Punkte unter X Metern akzeptieren
-        // Wenn du hier "2" einträgst, wird es extrem streng. 
-        // Ich empfehle "5" für einen guten Kompromiss.
-        if (accuracy > 5) return; 
+    // 3. SPRUNG-DÄMPFUNG (Anti-Jumping)
+    // Wenn der neue Punkt mehr als 20m vom letzten weg ist, aber die Zeit kurz war, 
+    // ignorieren wir ihn als "GPS-Rauschen".
+    if (lastValidLatLng && currentLatLng.distanceTo(lastValidLatLng) > 25) {
+        return; 
+    }
 
-        // 3. Live-Marker setzen
-        if (!liveMarker) {
-            liveMarker = L.circleMarker(currentLatLng, { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(state.map);
-            state.map.panTo(currentLatLng);
-        } else {
-            liveMarker.setLatLng(currentLatLng);
-        }
+    lastValidLatLng = currentLatLng;
 
-        // 4. Route aufzeichnen
-        if (state.current) {
+    // 4. POSITION AKTUALISIEREN
+    if (!liveMarker) {
+        liveMarker = L.circleMarker(currentLatLng, { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(state.map);
+        state.map.panTo(currentLatLng);
+    } else {
+        liveMarker.setLatLng(currentLatLng);
+    }
+
+    // 5. ROUTE SPEICHERN
+    if (state.current) {
+        // Nur speichern, wenn man sich wirklich bewegt hat (mind. 2 Meter)
+        const lastPoint = state.current.route[state.current.route.length - 1];
+        if (!lastPoint || L.latLng(lastPoint).distanceTo(currentLatLng) > 2) {
             state.current.route.push([latitude, longitude]);
             renderRoute();
         }
-    }, err => console.error(err), { 
-        enableHighAccuracy: true, 
-        maximumAge: 0, 
-        timeout: 10000 
-    });
-
+    }
+}, err => {
+    console.error("GPS Error Code: " + err.code);
+}, { 
+    enableHighAccuracy: true, 
+    maximumAge: 0, 
+    timeout: 20000 // Mehr Zeit geben für den ersten "Fix"
+});
+    
 function renderRoute() {
     state.layers.tempo.clearLayers();
     if (state.current.route.length < 2) return;
@@ -271,6 +266,7 @@ initMap();
 </script>
 </body>
 </html>
+
 
 
 
