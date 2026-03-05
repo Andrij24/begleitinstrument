@@ -86,14 +86,27 @@ const state = {
 };
  
 let liveMarker = null;
- 
+let accuracyCircle = null;
+let lastValidLatLng = null;
+    
 function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
     state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(state.map);
     Object.values(state.layers).forEach(l => l.addTo(state.map));
-   
+
+    // Ebenen-Schalter initialisieren
+    const toggles = {'toggleTempo': 'tempo', 'toggleMood': 'mood', 'toggleThought': 'thought', 'toggleSense': 'sense', 'togglePhoto': 'photo', 'toggleAudio': 'audio'};
+    Object.entries(toggles).forEach(([id, layer]) => {
+        document.getElementById(id).onchange = (e) => {
+            if (e.target.checked) state.map.addLayer(state.layers[layer]);
+            else state.map.removeLayer(state.layers[layer]);
+        };
+    });
+
+    //Hochpräzises GPS
     navigator.geolocation.watchPosition(pos => {
         const { latitude, longitude } = pos.coords;
+        const currentLatLng = L.latLng(latitude, longitude);
         if (!liveMarker) {
             liveMarker = L.circleMarker([latitude, longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(state.map);
             state.map.panTo([latitude, longitude]);
@@ -242,6 +255,7 @@ initMap();
 </script>
 </body>
 </html>
+
 
 
 
