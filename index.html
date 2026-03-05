@@ -85,62 +85,38 @@ const state = {
     }
 };
  
-let lastValidLatLng = null;
-
-navigator.geolocation.watchPosition(pos => {
-    const { latitude, longitude, accuracy } = pos.coords;
-    const currentLatLng = L.latLng(latitude, longitude);
-
-    // 1. VISUELLES FEEDBACK (Immer anzeigen)
-    if (!accuracyCircle) {
-        accuracyCircle = L.circle(currentLatLng, { radius: accuracy, color: '#2563eb', fillOpacity: 0.1, weight: 1 }).addTo(state.map);
-    } else {
-        accuracyCircle.setLatLng(currentLatLng).setRadius(accuracy);
-    }
-
-    // 2. INTELLIGENTER FILTER
-    // Wir lassen am Anfang etwas mehr Spielraum (30m) und werden strenger, sobald das Signal steht.
-    const threshold = (state.current && state.current.route.length > 5) ? 15 : 30;
-
-    if (accuracy > threshold) {
-        accuracyCircle.setStyle({color: 'red'}); // Signal zu schlecht
-        return; 
-    }
-    accuracyCircle.setStyle({color: '#2563eb'});
-
-    // 3. SPRUNG-DÄMPFUNG (Anti-Jumping)
-    // Wenn der neue Punkt mehr als 20m vom letzten weg ist, aber die Zeit kurz war, 
-    // ignorieren wir ihn als "GPS-Rauschen".
-    if (lastValidLatLng && currentLatLng.distanceTo(lastValidLatLng) > 25) {
-        return; 
-    }
-
-    lastValidLatLng = currentLatLng;
-
-    // 4. POSITION AKTUALISIEREN
-    if (!liveMarker) {
-        liveMarker = L.circleMarker(currentLatLng, { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(state.map);
-        state.map.panTo(currentLatLng);
-    } else {
-        liveMarker.setLatLng(currentLatLng);
-    }
-
-    // 5. ROUTE SPEICHERN
-    if (state.current) {
-        // Nur speichern, wenn man sich wirklich bewegt hat (mind. 2 Meter)
-        const lastPoint = state.current.route[state.current.route.length - 1];
-        if (!lastPoint || L.latLng(lastPoint).distanceTo(currentLatLng) > 2) {
+let liveMarker = null;
+ 
+function initMap() {
+    state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
+    state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(state.map);
+    Object.values(state.layers).forEach(l => l.addTo(state.map));
+   
+    navigator.geolocation.watchPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        if (!liveMarker) {
+            liveMarker = L.circleMarker([latitude, longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(state.map);
+            state.map.panTo([latitude, longitude]);
+        } else {
+            liveMarker.setLatLng([latitude, longitude]);
+        }
+        if (state.current) {
             state.current.route.push([latitude, longitude]);
             renderRoute();
         }
+    }, null, { enableHighAccuracy: true });
+}
+ 
+document.getElementById('styleToggle').onclick = () => {
+    state.map.removeLayer(state.tiles);
+    if (state.currentStyle === 'standard') {
+        state.tiles = L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png').addTo(state.map);
+        state.currentStyle = 'bright';
+    } else {
+        state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(state.map);
+        state.currentStyle = 'standard';
     }
-}, err => {
-    console.error("GPS Error Code: " + err.code);
-}, { 
-    enableHighAccuracy: true, 
-    maximumAge: 0, 
-    timeout: 20000 // Mehr Zeit geben für den ersten "Fix"
-});
+};
     
 function renderRoute() {
     state.layers.tempo.clearLayers();
@@ -266,6 +242,7 @@ initMap();
 </script>
 </body>
 </html>
+
 
 
 
