@@ -79,19 +79,19 @@ const state = {
     audioRecorder: null,
     audioChunks: [],
     isRecording: false,
-    layers: { 
-        tempo: L.layerGroup(), mood: L.layerGroup(), thought: L.layerGroup(), 
-        sense: L.layerGroup(), photo: L.layerGroup(), audio: L.layerGroup() 
+    layers: {
+        tempo: L.layerGroup(), mood: L.layerGroup(), thought: L.layerGroup(),
+        sense: L.layerGroup(), photo: L.layerGroup(), audio: L.layerGroup()
     }
 };
-
+ 
 let liveMarker = null;
-
+ 
 function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
     state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(state.map);
     Object.values(state.layers).forEach(l => l.addTo(state.map));
-    
+   
     navigator.geolocation.watchPosition(pos => {
         const { latitude, longitude } = pos.coords;
         if (!liveMarker) {
@@ -106,7 +106,7 @@ function initMap() {
         }
     }, null, { enableHighAccuracy: true });
 }
-
+ 
 document.getElementById('styleToggle').onclick = () => {
     state.map.removeLayer(state.tiles);
     if (state.currentStyle === 'standard') {
@@ -141,10 +141,7 @@ document.getElementById('stopWalk').onclick = () => {
 function addEntry(type, data = {}) {
     if (!state.current) return alert("Bitte starte erst einen Walk!");
     const pos = liveMarker.getLatLng();
-    // Zufallsverschiebung entfernt:
-    let lat = pos.lat;
-    let lng = pos.lng;
-    const entry = { type, location: { lat, lng }, timestamp: new Date().toLocaleTimeString(), ...data };
+    const entry = { type, location: { lat: pos.lat, lng: pos.lng }, timestamp: new Date().toLocaleTimeString(), ...data };
     state.current.entries.push(entry);
     drawMarker(entry);
 }
@@ -154,31 +151,16 @@ function drawMarker(e) {
     if (e.type === 'mood') L.circleMarker(loc, { radius: 22, fillColor: '#ff4500', color: '#8b0000', weight: 2, fillOpacity: 0.7 }).addTo(state.layers.mood);
     else if (e.type === 'thought') L.circleMarker(loc, { radius: 7, fillColor: '#12345f', color: '#fff', weight: 1, fillOpacity: 0.9 }).addTo(state.layers.thought);
     else if (e.type === 'sense') L.circleMarker(loc, { radius: 9, fillColor: '#3d633d', color: '#1a2e1a', weight: 1.5, fillOpacity: 0.9 }).addTo(state.layers.sense);
-    
-    // HIER WURDEN DIE ICONS GEÄNDERT:
     else if (e.type === 'photo') {
-        const photoIcon = L.divIcon({
-            html: '<div style="font-size: 24px;">📸</div>',
-            className: 'custom-div-icon',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
-        L.marker(loc, {icon: photoIcon}).addTo(state.layers.photo)
-            .bindPopup(`<img src="${e.photo}" width="150" style="border-radius:8px;">`);
+        const photoIcon = L.divIcon({ html: '<div style="font-size: 24px;">📸</div>', className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+        L.marker(loc, {icon: photoIcon}).addTo(state.layers.photo).bindPopup(`<img src="${e.photo}" width="150" style="border-radius:8px;">`);
     }
     else if (e.type === 'audio') {
-        const audioIcon = L.divIcon({
-            html: '<div style="font-size: 24px;">🔊</div>',
-            className: 'custom-div-icon',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
-        L.marker(loc, {icon: audioIcon}).addTo(state.layers.audio)
-            .bindPopup(`<b style="font-size:10px;">Audio-Aufnahme:</b><br><audio controls src="${e.audioUrl}" style="width:200px; height:30px; margin-top:5px;"></audio>`);
+        const audioIcon = L.divIcon({ html: '<div style="font-size: 24px;">🔊</div>', className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+        L.marker(loc, {icon: audioIcon}).addTo(state.layers.audio).bindPopup(`<audio controls src="${e.audioUrl}" style="width:200px; height:30px;"></audio>`);
     }
 }
 
-// AUDIO LOGIK
 document.getElementById('audioToggle').onclick = async () => {
     if (!state.current) return alert("Walk starten!");
     if (!state.isRecording) {
@@ -188,8 +170,7 @@ document.getElementById('audioToggle').onclick = async () => {
         state.audioRecorder.ondataavailable = e => state.audioChunks.push(e.data);
         state.audioRecorder.onstop = () => {
             const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            addEntry('audio', { audioUrl: url, audioBlob: blob });
+            addEntry('audio', { audioUrl: URL.createObjectURL(blob), audioBlob: blob });
         };
         state.audioRecorder.start();
         state.isRecording = true;
@@ -203,54 +184,28 @@ document.getElementById('audioToggle').onclick = async () => {
     }
 };
 
-// 3. ROBUSTERER ZIP-EXPORT
 document.getElementById('exportFull').onclick = async () => {
     const walk = state.current || state.walks[state.walks.length - 1];
-    if (!walk) return alert("Kein aktiver oder gespeicherter Walk vorhanden.");
-
+    if (!walk) return alert("Kein Walk vorhanden.");
     const btn = document.getElementById('exportFull');
-    btn.innerText = "⏳ EXPORTIERE...";
-    btn.disabled = true;
-
+    btn.innerText = "⏳..."; btn.disabled = true;
     try {
         const zip = new JSZip();
-        const mediaFolder = zip.folder("medien");
-        
-        // Screenshot der Karte (Wichtig: useCORS muss aktiv sein)
-        const canvas = await html2canvas(document.getElementById('map'), { 
-            useCORS: true,
-            allowTaint: true,
-            ignoreElements: (el) => el.classList.contains('top-ui') || el.classList.contains('side-ui')
-        });
-        
+        const canvas = await html2canvas(document.getElementById('map'), { useCORS: true, ignoreElements: el => el.classList.contains('top-ui') || el.classList.contains('side-ui') });
         zip.file("karte_uebersicht.jpg", canvas.toDataURL("image/jpeg", 0.9).split(',')[1], {base64: true});
-
-        // JSON Daten für GIS-Weiterverarbeitung
         zip.file("daten.json", JSON.stringify(walk, null, 2));
-
-        // Medien-Dateien
         walk.entries.forEach((e, i) => {
-            const timePrefix = e.timestamp.replace(/:/g, '-');
-            if (e.photo) {
-                zip.file(`foto_${timePrefix}_${i}.jpg`, e.photo.split(',')[1], {base64: true});
-            }
-            if (e.audioBlob) {
-                zip.file(`audio_${timePrefix}_${i}.webm`, e.audioBlob);
-            }
+            const ts = e.timestamp.replace(/:/g, '-');
+            if (e.photo) zip.file(`foto_${ts}_${i}.jpg`, e.photo.split(',')[1], {base64: true});
+            if (e.audioBlob) zip.file(`audio_${ts}_${i}.webm`, e.audioBlob);
         });
-
         const content = await zip.generateAsync({type:"blob"});
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);
         link.download = `Export_Walk_${walk.id}.zip`;
         link.click();
-    } catch (err) {
-        console.error("Export fehlgeschlagen", err);
-        alert("Fehler beim Export.");
-    } finally {
-        btn.innerText = "ZIP EXPORT";
-        btn.disabled = false;
-    }
+    } catch (err) { alert("Export fehlgeschlagen."); }
+    btn.innerText = "ZIP EXPORT"; btn.disabled = false;
 };
 
 function updateArchiveUI() {
@@ -262,10 +217,8 @@ function updateArchiveUI() {
         div.innerText = "Tour " + w.id;
         div.onclick = () => {
             Object.values(state.layers).forEach(l => l.clearLayers());
-            // Falls eine Route existiert, darauf zentrieren
             if(w.route.length > 0) state.map.fitBounds(L.polyline(w.route).getBounds());
             w.entries.forEach(drawMarker);
-            // Route manuell zeichnen für Archiv-Ansicht
             L.polyline(w.route, { color: 'black', weight: 4, className: 'rough-path' }).addTo(state.layers.tempo);
         };
         list.appendChild(div);
@@ -289,5 +242,6 @@ initMap();
 </script>
 </body>
 </html>
+
 
 
