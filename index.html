@@ -167,6 +167,7 @@ function drawMarker(e) {
         const audioIcon = L.divIcon({ html: '<div style="font-size: 24px;">💬</div>', className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
         L.marker(loc, {icon: audioIcon}).addTo(state.layers.audio).bindPopup(`<audio controls src="${e.audioUrl}" style="width:200px; height:30px;"></audio>`);
     }
+}
 // Diese Funktion steuert beide Aufnahme-Buttons
 async function handleRecording(buttonId, type) {
     const btn = document.getElementById(buttonId);
@@ -202,7 +203,6 @@ async function handleRecording(buttonId, type) {
 document.getElementById('audioToggle').onclick = () => handleRecording('audioToggle', 'Sound');
 document.getElementById('messageToggle').onclick = () => handleRecording('messageToggle', 'Sprachnachricht');
     
-};
 
 document.getElementById('exportFull').onclick = async () => {
     const walk = state.current || state.walks[state.walks.length - 1];
@@ -262,6 +262,7 @@ initMap();
 </script>
 </body>
 </html>
+
 
 
 
