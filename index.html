@@ -52,8 +52,10 @@
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleMood" type="checkbox" checked> <label>Stimmung</label></div>
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleThought" type="checkbox" checked> <label>Gedanken</label></div>
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleSense" type="checkbox" checked> <label>Wahrnehmung</label></div>
+        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleAudio" type="checkbox" checked> <label>Sprachnachricht</label></div>
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="togglePhoto" type="checkbox" checked> <label>Fotos</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleAudio" type="checkbox" checked> <label>Audio</label></div>
+        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleAudio" type="checkbox" checked> <label>Sound</label></div>
+      
     </div>
     <div class="panel max-h-[150px] overflow-y-auto">
         <p class="font-bold text-[9px] uppercase text-gray-400 border-b mb-1">Archiv</p>
@@ -66,6 +68,7 @@
     <button id="audioToggle" class="fab bg-orange-400 text-white">▶️</button>
     <button id="senseBtn" class="fab bg-[#3d633d] text-white">👁️</button>
     <button id="thoughtBtn" class="fab bg-[#12345f] text-white">💭</button>
+    <button id="audioToggle" class="fab bg-orange-400 text-white">💬</button>
     <button id="moodBtn" class="fab" style="background: radial-gradient(circle, #ff8c00, #ff4500);">🔋</button>
 </div>
 
@@ -155,10 +158,39 @@ function drawMarker(e) {
         const photoIcon = L.divIcon({ html: '<div style="font-size: 24px;">📸</div>', className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
         L.marker(loc, {icon: photoIcon}).addTo(state.layers.photo).bindPopup(`<img src="${e.photo}" width="150" style="border-radius:8px;">`);
     }
-    else if (e.type === 'audio') {
+    else if (e.type === 'Sound') {
         const audioIcon = L.divIcon({ html: '<div style="font-size: 24px;">🔊</div>', className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+        L.marker(loc, {icon: audioIcon}).addTo(state.layers.audio).bindPopup(`<audio controls src="${e.audioUrl}" style="width:200px; height:30px;"></Sound>`);
+
+         }
+    else if (e.type === 'Sprachnachricht') {
+        const audioIcon = L.divIcon({ html: '<div style="font-size: 24px;">💬</div>', className: 'custom-div-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
         L.marker(loc, {icon: audioIcon}).addTo(state.layers.audio).bindPopup(`<audio controls src="${e.audioUrl}" style="width:200px; height:30px;"></audio>`);
     }
+}
+
+document.getElementById('audioToggle').onclick = async () => {
+    if (!state.current) return alert("Walk starten!");
+    if (!state.isRecording) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        state.audioRecorder = new MediaRecorder(stream);
+        state.audioChunks = [];
+        state.audioRecorder.ondataavailable = e => state.audioChunks.push(e.data);
+        state.audioRecorder.onstop = () => {
+            const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
+            addEntry('audio', { audioUrl: URL.createObjectURL(blob), audioBlob: blob });
+        };
+        state.audioRecorder.start();
+        state.isRecording = true;
+        document.getElementById('audioToggle').innerText = "⏹️";
+        document.getElementById('audioToggle').classList.replace('bg-orange-400', 'bg-red-600');
+    } else {
+        state.audioRecorder.stop();
+        state.isRecording = false;
+        document.getElementById('audioToggle').innerText = "▶️";
+        document.getElementById('audioToggle').classList.replace('bg-red-600', 'bg-orange-400');
+    }
+
 }
 
 document.getElementById('audioToggle').onclick = async () => {
@@ -242,6 +274,7 @@ initMap();
 </script>
 </body>
 </html>
+
 
 
 
