@@ -73,6 +73,8 @@ const state = {
     walks: [],
     current: null,
     map: null,
+    tiles: null,
+    currentStyle: 'standard',
     audioRecorder: null,
     audioChunks: [],
     isRecording: false,
@@ -87,7 +89,7 @@ let liveMarker = null;
 
 function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true }).addTo(state.map);
+    state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true }).addTo(state.map);
     Object.values(state.layers).forEach(l => l.addTo(state.map));
     
     navigator.geolocation.watchPosition(pos => {
@@ -104,6 +106,18 @@ function initMap() {
         }
     }, null, { enableHighAccuracy: true });
 }
+
+// LOGIK FÜR ANSICHT WECHSELN
+document.getElementById('styleToggle').onclick = () => {
+    state.map.removeLayer(state.tiles);
+    if (state.currentStyle === 'standard') {
+        state.tiles = L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { crossOrigin: true }).addTo(state.map);
+        state.currentStyle = 'bright';
+    } else {
+        state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true }).addTo(state.map);
+        state.currentStyle = 'standard';
+    }
+};
 
 function renderRoute() {
     state.layers.tempo.clearLayers();
@@ -130,7 +144,6 @@ function addEntry(type, data = {}) {
     if (!state.current) return alert("Starte erst einen Walk!");
     const pos = liveMarker.getLatLng();
 
-    // Texteingabe hinzufügen
     if (['mood', 'thought', 'sense'].includes(type)) {
         const prompts = { mood: "Stimmung?", thought: "Gedanke?", sense: "Wahrnehmung?" };
         const text = prompt(prompts[type]);
@@ -205,7 +218,6 @@ document.getElementById('photoBtn').onclick = () => {
     input.click();
 };
 
-// --- OPTIMIERTER EXPORT ---
 document.getElementById('exportFull').onclick = async () => {
     const walk = state.current || state.walks[state.walks.length - 1];
     if (!walk) return alert("Kein Walk vorhanden.");
@@ -215,13 +227,11 @@ document.getElementById('exportFull').onclick = async () => {
     const voiceFolder = zip.folder("Stimmen");
     const soundFolder = zip.folder("Umgebungssounds");
 
-    // 1. Screenshot
     try {
         const canvas = await html2canvas(document.getElementById('map'), { useCORS: true });
         zip.file("KARTEN_ANSICHT.png", canvas.toDataURL("image/png").split(',')[1], {base64: true});
     } catch(e) { console.log("Snapshot fehlgeschlagen"); }
 
-    // 2. Protokoll & Medien
     let protokoll = `WALK EXPORT PROTOKOLL - ${walk.id}\n\n`;
     
     walk.entries.forEach((e, i) => {
