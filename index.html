@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-    <title>Begleitinstrument — Medien-Export</title>
+    <title>Begleitinstrument — Finaler Export</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -51,7 +51,7 @@
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleThought" type="checkbox" checked> <label>Gedanken</label></div>
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleSense" type="checkbox" checked> <label>Wahrnehmung</label></div>
         <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleSoundLayer" type="checkbox" checked> <label>Umgebungssound</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleVoiceLayer" type="checkbox" checked> <label>Sprachnachricht </label></div>
+        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleVoiceLayer" type="checkbox" checked> <label>Sprachnachricht</label></div>
     </div>
     <div class="panel max-h-[150px] overflow-y-auto">
         <p class="font-bold text-[9px] uppercase text-gray-400 border-b mb-1">Archiv</p>
@@ -73,8 +73,6 @@ const state = {
     walks: [],
     current: null,
     map: null,
-    currentStyle: 'standard',
-    tiles: null,
     audioRecorder: null,
     audioChunks: [],
     isRecording: false,
@@ -89,7 +87,7 @@ let liveMarker = null;
 
 function initMap() {
     state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
-    state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(state.map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true }).addTo(state.map);
     Object.values(state.layers).forEach(l => l.addTo(state.map));
     
     navigator.geolocation.watchPosition(pos => {
@@ -115,7 +113,7 @@ function renderRoute() {
 }
 
 document.getElementById('startWalk').onclick = () => {
-    state.current = { id: new Date().toLocaleTimeString(), route: [], entries: [] };
+    state.current = { id: new Date().toLocaleString('de-DE'), route: [], entries: [] };
     Object.values(state.layers).forEach(l => l.clearLayers());
     alert("Walk gestartet.");
 };
@@ -131,6 +129,15 @@ document.getElementById('stopWalk').onclick = () => {
 function addEntry(type, data = {}) {
     if (!state.current) return alert("Starte erst einen Walk!");
     const pos = liveMarker.getLatLng();
+
+    // Texteingabe hinzufügen
+    if (['mood', 'thought', 'sense'].includes(type)) {
+        const prompts = { mood: "Stimmung?", thought: "Gedanke?", sense: "Wahrnehmung?" };
+        const text = prompt(prompts[type]);
+        if (text === null) return;
+        data.text = text || "(Keine Eingabe)";
+    }
+
     const entry = { type, location: { lat: pos.lat, lng: pos.lng }, timestamp: new Date().toLocaleTimeString(), ...data };
     state.current.entries.push(entry);
     drawMarker(entry);
@@ -138,17 +145,22 @@ function addEntry(type, data = {}) {
 
 function drawMarker(e) {
     const loc = [e.location.lat, e.location.lng];
-    if (e.type === 'mood') L.circleMarker(loc, { radius: 22, fillColor: '#ff4500', color: '#8b0000', weight: 2, fillOpacity: 0.7 }).addTo(state.layers.mood);
-    else if (e.type === 'thought') L.circleMarker(loc, { radius: 7, fillColor: '#12345f', color: '#fff', weight: 1, fillOpacity: 0.9 }).addTo(state.layers.thought);
-    else if (e.type === 'sense') L.circleMarker(loc, { radius: 9, fillColor: '#3d633d', color: '#1a2e1a', weight: 1.5, fillOpacity: 0.9 }).addTo(state.layers.sense);
-    else if (e.type === 'photo') {
+    const options = {
+        mood: { radius: 22, fillColor: '#ff4500', color: '#8b0000', weight: 2, fillOpacity: 0.7, label: "Stimmung" },
+        thought: { radius: 7, fillColor: '#12345f', color: '#fff', weight: 1, fillOpacity: 0.9, label: "Gedanke" },
+        sense: { radius: 9, fillColor: '#3d633d', color: '#1a2e1a', weight: 1.5, fillOpacity: 0.9, label: "Wahrnehmung" }
+    };
+
+    if (options[e.type]) {
+        L.circleMarker(loc, options[e.type]).addTo(state.layers[e.type]).bindPopup(`<b>${options[e.type].label}:</b><br>${e.text || ""}`);
+    } else if (e.type === 'photo') {
         const icon = L.divIcon({ html: '<div style="font-size: 24px;">📸</div>', className: 'custom-div-icon' });
         L.marker(loc, {icon}).addTo(state.layers.photo).bindPopup(`<img src="${e.photo}" width="150" style="border-radius:8px">`);
     } else if (e.type === 'Sound' || e.type === 'Sprachnachricht') {
         const iconTxt = e.type === 'Sound' ? '🔊' : '💬';
         const layer = e.type === 'Sound' ? state.layers.sound : state.layers.voice;
         const icon = L.divIcon({ html: `<div style="font-size: 24px;">${iconTxt}</div>`, className: 'custom-div-icon' });
-        L.marker(loc, {icon}).addTo(layer).bindPopup(`<audio controls src="${e.audioUrl}"></audio>`);
+        L.marker(loc, {icon}).addTo(layer).bindPopup(`<b>${e.type}:</b><br><audio controls src="${e.audioUrl}"></audio>`);
     }
 }
 
@@ -166,8 +178,7 @@ async function handleRecording(buttonId, type) {
             };
             state.audioRecorder.start();
             state.isRecording = true;
-            btn.innerText = "⏹️";
-            btn.classList.replace('bg-orange-400', 'bg-red-600');
+            btn.innerText = "⏹️"; btn.classList.replace('bg-orange-400', 'bg-red-600');
         } catch (err) { alert("Mikro-Zugriff verweigert."); }
     } else {
         state.audioRecorder.stop();
@@ -194,15 +205,46 @@ document.getElementById('photoBtn').onclick = () => {
     input.click();
 };
 
+// --- OPTIMIERTER EXPORT ---
 document.getElementById('exportFull').onclick = async () => {
     const walk = state.current || state.walks[state.walks.length - 1];
     if (!walk) return alert("Kein Walk vorhanden.");
+    
     const zip = new JSZip();
+    const photoFolder = zip.folder("Fotos");
+    const voiceFolder = zip.folder("Stimmen");
+    const soundFolder = zip.folder("Umgebungssounds");
+
+    // 1. Screenshot
+    try {
+        const canvas = await html2canvas(document.getElementById('map'), { useCORS: true });
+        zip.file("KARTEN_ANSICHT.png", canvas.toDataURL("image/png").split(',')[1], {base64: true});
+    } catch(e) { console.log("Snapshot fehlgeschlagen"); }
+
+    // 2. Protokoll & Medien
+    let protokoll = `WALK EXPORT PROTOKOLL - ${walk.id}\n\n`;
+    
+    walk.entries.forEach((e, i) => {
+        const ts = e.timestamp.replace(/:/g, '-');
+        protokoll += `[${e.timestamp}] ${e.type.toUpperCase()}: ${e.text || ""}\n`;
+
+        if (e.type === 'photo' && e.photo) {
+            photoFolder.file(`FOTO_${ts}_${i}.jpg`, e.photo.split(',')[1], {base64: true});
+        }
+        if (e.audioBlob) {
+            const folder = e.type === 'Sound' ? soundFolder : voiceFolder;
+            const prefix = e.type === 'Sound' ? 'UMGEBUNG' : 'STIMME';
+            folder.file(`${prefix}_${ts}_${i}.webm`, e.audioBlob);
+        }
+    });
+
+    zip.file("PROTOKOLL.txt", protokoll);
     zip.file("daten.json", JSON.stringify(walk, null, 2));
+
     const content = await zip.generateAsync({type:"blob"});
     const link = document.createElement("a");
     link.href = URL.createObjectURL(content);
-    link.download = `Export_Walk.zip`;
+    link.download = `Walk_Vollstaendig.zip`;
     link.click();
 };
 
@@ -222,11 +264,9 @@ function updateArchiveUI() {
     });
 }
 
-// Layer Toggle Logik
 const bindToggle = (id, layer) => {
     document.getElementById(id).onchange = e => e.target.checked ? state.map.addLayer(layer) : state.map.removeLayer(layer);
 };
-
 bindToggle('toggleMood', state.layers.mood);
 bindToggle('toggleThought', state.layers.thought);
 bindToggle('toggleSense', state.layers.sense);
@@ -238,4 +278,3 @@ initMap();
 </script>
 </body>
 </html>
-
