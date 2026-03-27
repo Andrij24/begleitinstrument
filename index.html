@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-    <title>Begleitinstrument — Finaler Export</title>
+    <title>Begleitinstrument PRO — Final FIX</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -12,50 +12,65 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
-        html, body, #map { height: 100%; margin: 0; background: #fff; overflow: hidden; }
-        #map { width: 100%; height: 100vh; }
-        .rough-path { filter: url(#roughFilter); stroke-linecap: round; }
-        .top-ui { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 8px; }
-        .side-ui { position: fixed; top: 70px; right: 12px; z-index: 1000; width: 180px; display: flex; flex-direction: column; gap: 10px; }
-        .bottom-left { position: fixed; bottom: 20px; left: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
+        html, body, #map { height: 100%; margin: 0; background: #fff; overflow: hidden; font-family: sans-serif; }
+        #map { width: 100%; height: 100vh; z-index: 1; }
+        .top-ui, .side-ui, .bottom-left { z-index: 1000; position: fixed; }
+        .top-ui { top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; }
+        .side-ui { top: 70px; right: 12px; width: 250px; display: flex; flex-direction: column; gap: 10px; }
+        .bottom-left { bottom: 20px; left: 12px; display: flex; flex-direction: column; gap: 12px; }
         .panel { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #ddd; }
-        .btn { padding: 10px 14px; border-radius: 10px; font-weight: bold; font-size: 11px; cursor: pointer; text-transform: uppercase; border: none; }
-        .fab { width: 60px; height: 60px; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: none; box-shadow: 0 6px 12px rgba(0,0,0,0.2); cursor: pointer; }
-        .walk-item { padding: 6px; border-bottom: 1px solid #eee; font-size: 10px; cursor: pointer; }
-        .custom-div-icon { background: none; border: none; }
+        .btn { padding: 10px 14px; border-radius: 10px; font-weight: bold; font-size: 10px; cursor: pointer; text-transform: uppercase; border: none; }
+        .fab { width: 55px; height: 55px; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-size: 22px; border: none; box-shadow: 0 6px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 1001; }
+        .walk-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .walk-item:hover { background-color: #f9f9f9; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #ccc; }
+        .dist-badge { font-size: 9px; color: #888; white-space: nowrap; margin-left: auto; }
+        #liveDistDisplay {
+            background: rgba(255,255,255,0.92);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #2563eb;
+            display: none;
+        }
+        .no-print { display: none !important; }
+
+        /* Rough-Filter: gilt für Live-Segmente UND Archiv-Vergleichslinien */
+        .rough-path {
+            filter: url(#roughFilter);
+            stroke-linecap: round;
+        }
     </style>
 </head>
 <body>
 
+<!-- SVG-Filter für den organischen Rough-Look -->
 <svg width="0" height="0" style="position:absolute">
   <filter id="roughFilter">
-    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise"/>
-    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" />
+    <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
   </filter>
 </svg>
 
 <div id="map"></div>
 
 <div class="top-ui">
-    <button id="startWalk" class="btn bg-blue-600 text-white">NEUER WALK</button>
-    <button id="stopWalk" class="btn bg-red-600 text-white">BEENDEN</button>
+    <button id="startWalk" class="btn bg-blue-600 text-white">START</button>
+    <button id="stopWalk" class="btn bg-red-600 text-white">STOP/SAVE</button>
     <button id="exportFull" class="btn bg-black text-white">ZIP EXPORT</button>
+    <span id="liveDistDisplay">📍 0 m</span>
 </div>
 
 <div class="side-ui">
-    <div class="panel">
-        <button id="styleToggle" class="btn bg-yellow-400 text-black w-full mb-3">ANSICHT WECHSELN</button>
-        <p class="font-bold text-[9px] uppercase text-gray-400 mb-2 border-b">Ebenen</p>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleTempo" type="checkbox" checked> <label>Route</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleMood" type="checkbox" checked> <label>Stimmung</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleThought" type="checkbox" checked> <label>Gedanken</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleSense" type="checkbox" checked> <label>Wahrnehmung</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleSoundLayer" type="checkbox" checked> <label>Umgebungssound</label></div>
-        <div class="flex items-center gap-2 mb-1 text-xs"><input id="toggleVoiceLayer" type="checkbox" checked> <label>Sprachnachricht</label></div>
-    </div>
-    <div class="panel max-h-[150px] overflow-y-auto">
-        <p class="font-bold text-[9px] uppercase text-gray-400 border-b mb-1">Archiv</p>
+    <div class="panel max-h-[250px] overflow-y-auto">
+        <p class="font-bold text-[10px] uppercase text-gray-500 mb-2 border-b">Vergleichs-Archiv</p>
         <div id="walkList"></div>
+    </div>
+    <div class="panel" id="reflectionPanel" style="display:none;">
+        <p class="font-bold text-[10px] uppercase text-blue-600 mb-1">Reflexion: <span id="activeWalkName" class="text-gray-600"></span></p>
+        <textarea id="reflectionText" class="w-full text-xs p-2 border rounded h-32 mb-2" placeholder="Deine Analyse hier..."></textarea>
+        <button id="saveReflection" class="btn bg-blue-100 text-blue-700 w-full">Reflexion Speichern</button>
     </div>
 </div>
 
@@ -69,115 +84,366 @@
 </div>
 
 <script>
+// ============================================================
+// GeoUtils — Haversine-Distanzberechnung
+// ============================================================
+class GeoUtils {
+    static toRad(angle) {
+        return angle * Math.PI / 180;
+    }
+
+    static haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = GeoUtils.toRad(lat2 - lat1);
+        const dLon = GeoUtils.toRad(lon2 - lon1);
+        const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(GeoUtils.toRad(lat1)) *
+            Math.cos(GeoUtils.toRad(lat2)) *
+            Math.sin(dLon / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    // unter 1 km → Meter, ab 1 km → Kilometer
+    static formatDistance(km) {
+        if (km < 1) return `${Math.round(km * 1000)} m`;
+        return `${km.toFixed(2)} km`;
+    }
+}
+
+// --- KONFIGURATION ---
+const walkColors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6'];
+
+// --- STATE MANAGER ---
 const state = {
-    walks: [],
+    walks: JSON.parse(localStorage.getItem('psychogeo_walks') || '[]'),
     current: null,
     map: null,
-    tiles: null,
-    currentStyle: 'standard',
+    liveMarker: null,
+    activeComparisonLayers: {},
     audioRecorder: null,
     audioChunks: [],
-    isRecording: false,
-    layers: {
-        tempo: L.layerGroup(), mood: L.layerGroup(), thought: L.layerGroup(),
-        sense: L.layerGroup(), photo: L.layerGroup(), 
-        sound: L.layerGroup(), voice: L.layerGroup()
-    }
+    isRecording: false
 };
 
-let liveMarker = null;
-
+// --- INITIALISIERUNG ---
 function initMap() {
-    state.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
-    state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true }).addTo(state.map);
-    Object.values(state.layers).forEach(l => l.addTo(state.map));
-    
-    navigator.geolocation.watchPosition(pos => {
-        const { latitude, longitude } = pos.coords;
-        if (!liveMarker) {
-            liveMarker = L.circleMarker([latitude, longitude], { radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(state.map);
-            state.map.panTo([latitude, longitude]);
-        } else {
-            liveMarker.setLatLng([latitude, longitude]);
-        }
-        if (state.current) {
-            state.current.route.push([latitude, longitude]);
-            renderRoute();
-        }
-    }, null, { enableHighAccuracy: true });
+    state.map = L.map('map', { zoomControl: false, preferCanvas: false }).setView([47.23, 9.61], 15);
+    // preferCanvas: false ist wichtig — nur SVG-Renderer unterstützt className + CSS-Filter
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        crossOrigin: true,
+        attribution: '© OpenStreetMap'
+    }).addTo(state.map);
+
+    navigator.geolocation.watchPosition(onLocationUpdate, onLocationError, { enableHighAccuracy: true });
+    updateArchiveUI();
 }
 
-// LOGIK FÜR ANSICHT WECHSELN
-document.getElementById('styleToggle').onclick = () => {
-    state.map.removeLayer(state.tiles);
-    if (state.currentStyle === 'standard') {
-        state.tiles = L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { crossOrigin: true }).addTo(state.map);
-        state.currentStyle = 'bright';
+// --- GEOLOCATION HANDLER ---
+function onLocationUpdate(pos) {
+    const { latitude, longitude } = pos.coords;
+    const latlng = [latitude, longitude];
+    const now = Date.now();
+
+    if (!state.liveMarker) {
+        state.liveMarker = L.circleMarker(latlng, {
+            radius: 8, fillColor: "#2563eb", color: "#fff", weight: 2, fillOpacity: 1
+        }).addTo(state.map);
+        state.map.panTo(latlng);
     } else {
-        state.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true }).addTo(state.map);
-        state.currentStyle = 'standard';
+        state.liveMarker.setLatLng(latlng);
     }
-};
 
-function renderRoute() {
-    state.layers.tempo.clearLayers();
-    if (state.current && state.current.route.length >= 2) {
-        L.polyline(state.current.route, { color: 'black', weight: 4, opacity: 1, className: 'rough-path' }).addTo(state.layers.tempo);
+    if (state.current) {
+        const route = state.current.route;
+        const times = state.current.routeTimes;
+
+        if (route.length > 0) {
+            const prev = route[route.length - 1];
+            const prevTime = times[times.length - 1];
+
+            // Distanz akkumulieren
+            const segmentKm = GeoUtils.haversineDistance(prev[0], prev[1], latitude, longitude);
+            state.current.totalDistance += segmentKm;
+
+            // Geschwindigkeit berechnen (km/h)
+            const dtHours = (now - prevTime) / 3600000;
+            const speedKmh = dtHours > 0 ? segmentKm / dtHours : 0;
+
+            // Segment mit Rough-Look und Geschwindigkeits-Styling zeichnen
+            drawSpeedSegment([prev, latlng], speedKmh);
+
+            // Live-Distanzanzeige aktualisieren
+            document.getElementById('liveDistDisplay').textContent =
+                `📍 ${GeoUtils.formatDistance(state.current.totalDistance)}`;
+        }
+
+        route.push(latlng);
+        times.push(now);
     }
 }
 
+function onLocationError(err) {
+    console.warn("GEOLOCATION ERROR: " + err.message);
+}
+
+// Diese Funktion bleibt leer — Segmente werden direkt in drawSpeedSegment gezeichnet
+function updateLiveRouteDisplay() {}
+
+// ============================================================
+// drawSpeedSegment — Herzstück der Visualisierung
+// Skizzen-Logik: schnell = dünn & transparent, langsam = dick & opak
+// Alle Segmente erhalten den Rough-Filter via className: 'rough-path'
+// ============================================================
+function drawSpeedSegment(points, speedKmh) {
+    // Typischer Spaziergang: 0–6 km/h
+    // Erhöhe MAX_SPEED für schwächeren Kontrast, senke für stärkeren
+    const MAX_SPEED = 6;
+    const ratio = Math.min(speedKmh / MAX_SPEED, 1); // 0 = langsam, 1 = schnell
+
+    // Langsam → dick (14px), schnell → hauchdünn (1px)
+    const weight = Math.round(14 - ratio * 13);
+
+    // Langsam → fast opak (0.9), schnell → kaum sichtbar (0.06)
+    const opacity = 0.9 - ratio * 0.84;
+
+    const color = state.current ? state.current.color : '#2563eb';
+
+    const seg = L.polyline(points, {
+        color,
+        weight,
+        opacity,
+        lineCap: 'round',
+        lineJoin: 'round',
+        className: 'rough-path'  // ✅ Rough-Filter live aktiv
+    }).addTo(state.map);
+
+    // Segment-Referenz für Cleanup speichern
+    if (state.current) {
+        if (!state.current.segments) state.current.segments = [];
+        state.current.segments.push(seg);
+    }
+}
+
+// --- WALK STEUERUNG ---
 document.getElementById('startWalk').onclick = () => {
-    state.current = { id: new Date().toLocaleString('de-DE'), route: [], entries: [] };
-    Object.values(state.layers).forEach(l => l.clearLayers());
-    alert("Walk gestartet.");
+    if (state.current) return alert("Walk läuft bereits!");
+    clearAllComparisonLayers();
+
+    const color = walkColors[state.walks.length % walkColors.length];
+    state.current = {
+        id: Date.now(),
+        startTime: new Date().toISOString(),
+        name: new Date().toLocaleString('de-DE'),
+        route: [],
+        routeTimes: [],   // ✅ Zeitstempel parallel zur Route
+        segments: [],     // ✅ Live-Segment-Referenzen
+        entries: [],
+        color: color,
+        reflection: "",
+        totalDistance: 0
+    };
+
+    const display = document.getElementById('liveDistDisplay');
+    display.style.display = 'inline-block';
+    display.textContent = '📍 0 m';
+
+    alert("Aufzeichnung gestartet! Daten werden erhoben.");
 };
 
 document.getElementById('stopWalk').onclick = () => {
-    if (!state.current) return;
+    if (!state.current) return alert("Kein aktiver Walk!");
+    if (state.current.route.length < 2) {
+        if (!confirm("Strecke ist sehr kurz. Trotzdem speichern?")) return;
+    }
+
+    state.current.totalDistance = parseFloat(state.current.totalDistance.toFixed(4));
+
+    // Segment-Layer-Objekte können nicht in LocalStorage → nur IDs merken
+    state.current.segments = [];
+
     state.walks.push(state.current);
+    saveToLocalStorage();
     updateArchiveUI();
+
+    document.getElementById('liveDistDisplay').style.display = 'none';
+
+    const savedDist = state.current.totalDistance;
     state.current = null;
-    alert("Walk gespeichert.");
+    alert(`Walk gespeichert. Zurückgelegte Strecke: ${GeoUtils.formatDistance(savedDist)}`);
 };
 
+// --- DATENERHEBUNG ---
 function addEntry(type, data = {}) {
-    if (!state.current) return alert("Starte erst einen Walk!");
-    const pos = liveMarker.getLatLng();
+    if (!state.current) return alert("Bitte erst START drücken!");
+    if (!state.liveMarker) return alert("Warte auf GPS Signal...");
+    const pos = state.liveMarker.getLatLng();
 
-    if (['mood', 'thought', 'sense'].includes(type)) {
-        const prompts = { mood: "Stimmung?", thought: "Gedanke?", sense: "Wahrnehmung?" };
-        const text = prompt(prompts[type]);
-        if (text === null) return;
-        data.text = text || "(Keine Eingabe)";
-    }
-
-    const entry = { type, location: { lat: pos.lat, lng: pos.lng }, timestamp: new Date().toLocaleTimeString(), ...data };
-    state.current.entries.push(entry);
-    drawMarker(entry);
-}
-
-function drawMarker(e) {
-    const loc = [e.location.lat, e.location.lng];
-    const options = {
-        mood: { radius: 22, fillColor: '#ff4500', color: '#8b0000', weight: 2, fillOpacity: 0.7, label: "Stimmung" },
-        thought: { radius: 7, fillColor: '#12345f', color: '#fff', weight: 1, fillOpacity: 0.9, label: "Gedanke" },
-        sense: { radius: 9, fillColor: '#3d633d', color: '#1a2e1a', weight: 1.5, fillOpacity: 0.9, label: "Wahrnehmung" }
+    const processEntry = (finalData) => {
+        const entry = {
+            type,
+            location: { lat: pos.lat, lng: pos.lng },
+            timestamp: new Date().toLocaleTimeString('de-DE'),
+            isoDate: new Date().toISOString(),
+            ...finalData
+        };
+        state.current.entries.push(entry);
+        drawTempMarker(entry);
     };
 
-    if (options[e.type]) {
-        L.circleMarker(loc, options[e.type]).addTo(state.layers[e.type]).bindPopup(`<b>${options[e.type].label}:</b><br>${e.text || ""}`);
-    } else if (e.type === 'photo') {
-        const icon = L.divIcon({ html: '<div style="font-size: 24px;">📸</div>', className: 'custom-div-icon' });
-        L.marker(loc, {icon}).addTo(state.layers.photo).bindPopup(`<img src="${e.photo}" width="150" style="border-radius:8px">`);
-    } else if (e.type === 'Sound' || e.type === 'Sprachnachricht') {
-        const iconTxt = e.type === 'Sound' ? '🔊' : '💬';
-        const layer = e.type === 'Sound' ? state.layers.sound : state.layers.voice;
-        const icon = L.divIcon({ html: `<div style="font-size: 24px;">${iconTxt}</div>`, className: 'custom-div-icon' });
-        L.marker(loc, {icon}).addTo(layer).bindPopup(`<b>${e.type}:</b><br><audio controls src="${e.audioUrl}"></audio>`);
+    if (['mood', 'thought', 'sense'].includes(type)) {
+        const prompts = { mood: "Stimmung beschreiben:", thought: "Gedanke?", sense: "Wahrnehmung?" };
+        const text = prompt(prompts[type]);
+        if (text === null) return;
+        processEntry({ text: text || "(Keine Eingabe)" });
+    } else {
+        processEntry(data);
     }
 }
 
+let tempLayerGroup = L.layerGroup();
+function drawTempMarker(e) {
+    if (!tempLayerGroup.getBounds().isValid()) tempLayerGroup.addTo(state.map);
+    const loc = [e.location.lat, e.location.lng];
+    if (['mood', 'thought', 'sense'].includes(e.type)) {
+        L.circleMarker(loc, {
+            radius: 6, fillColor: '#2563eb', color: '#fff', weight: 1, fillOpacity: 0.8
+        }).addTo(tempLayerGroup);
+    } else {
+        L.marker(loc, { icon: L.divIcon({ html: '🔵', className: 'text-xs' }) }).addTo(tempLayerGroup);
+    }
+}
+
+// --- ANALYSE & VERGLEICH ---
+function toggleWalkComparison(id) {
+    const walkId = parseInt(id);
+    const walk = state.walks.find(w => w.id === walkId);
+    if (!walk) return;
+
+    if (state.current) {
+        alert("Bitte beende erst die aktuelle Aufnahme, um Vergleiche zu sehen.");
+        updateArchiveUI();
+        return;
+    }
+
+    if (state.activeComparisonLayers[walkId]) {
+        state.map.removeLayer(state.activeComparisonLayers[walkId]);
+        delete state.activeComparisonLayers[walkId];
+        hideReflectionPanel();
+    } else {
+        const group = L.layerGroup();
+
+        // Archiv-Route ebenfalls mit Rough-Filter
+        L.polyline(walk.route, {
+            color: walk.color,
+            weight: 5,
+            opacity: 0.75,
+            lineCap: 'round',
+            lineJoin: 'round',
+            className: 'rough-path'
+        }).addTo(group);
+
+        walk.entries.forEach(e => {
+            const loc = [e.location.lat, e.location.lng];
+            if (['mood', 'thought', 'sense'].includes(e.type)) {
+                L.circleMarker(loc, {
+                    radius: 8, fillColor: walk.color, color: '#fff', weight: 2, fillOpacity: 1
+                }).addTo(group).bindPopup(`<b>${e.type.toUpperCase()}</b><br>${e.text}`);
+            } else if (e.type === 'photo') {
+                const icon = L.divIcon({ html: '📸', className: 'text-lg' });
+                L.marker(loc, { icon }).addTo(group).bindPopup(`<img src="${e.photo}" width="150">`);
+            } else if (e.type === 'Sound' || e.type === 'Sprachnachricht') {
+                const iconTxt = e.type === 'Sound' ? '🔊' : '💬';
+                const icon = L.divIcon({ html: iconTxt, className: 'text-lg' });
+                L.marker(loc, { icon }).addTo(group).bindPopup(`<audio controls src="${e.audioUrl}"></audio>`);
+            }
+        });
+
+        group.addTo(state.map);
+        state.activeComparisonLayers[walkId] = group;
+        showReflectionPanel(walk);
+    }
+}
+
+function clearAllComparisonLayers() {
+    Object.values(state.activeComparisonLayers).forEach(layer => state.map.removeLayer(layer));
+    state.activeComparisonLayers = {};
+    hideReflectionPanel();
+    updateArchiveUI();
+}
+
+// --- REFLEXIONS LOGIK ---
+function showReflectionPanel(walk) {
+    const panel = document.getElementById('reflectionPanel');
+    const textArea = document.getElementById('reflectionText');
+    document.getElementById('activeWalkName').innerText = walk.name;
+    panel.style.display = 'block';
+    textArea.value = walk.reflection || "";
+    textArea.dataset.activeWalkId = walk.id;
+}
+
+function hideReflectionPanel() {
+    document.getElementById('reflectionPanel').style.display = 'none';
+}
+
+document.getElementById('saveReflection').onclick = () => {
+    const textArea = document.getElementById('reflectionText');
+    const walkId = parseInt(textArea.dataset.activeWalkId);
+    if (!walkId) return;
+    const walk = state.walks.find(w => w.id === walkId);
+    if (walk) {
+        walk.reflection = textArea.value;
+        saveToLocalStorage();
+        alert("Reflexion gespeichert.");
+    }
+};
+
+// --- STORAGE ---
+function saveToLocalStorage() {
+    const cleanWalks = state.walks.map(w => ({
+        ...w,
+        segments: [], // Layer-Objekte nie in LocalStorage
+        entries: w.entries.map(e => {
+            const { audioBlob, ...cleanEntry } = e;
+            return cleanEntry;
+        })
+    }));
+    localStorage.setItem('psychogeo_walks', JSON.stringify(cleanWalks));
+}
+
+// --- UI UPDATES ---
+function updateArchiveUI() {
+    const list = document.getElementById('walkList');
+    list.innerHTML = "";
+    if (state.walks.length === 0) {
+        list.innerHTML = "<p class='text-xs text-gray-400 p-2'>Noch keine Walks gespeichert.</p>";
+        return;
+    }
+    state.walks.forEach(w => {
+        const isActive = !!state.activeComparisonLayers[w.id];
+        const distLabel = (w.totalDistance != null && w.totalDistance > 0)
+            ? GeoUtils.formatDistance(w.totalDistance)
+            : '— m';
+        const div = document.createElement('div');
+        div.className = "walk-item";
+        div.innerHTML = `
+            <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleWalkComparison(${w.id})">
+            <span class="color-dot" style="background:${w.color}"></span>
+            <span class="flex-grow">${w.name}</span>
+            <span class="dist-badge">📏 ${distLabel}</span>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// --- EVENT LISTENER ---
+document.getElementById('moodBtn').onclick = () => addEntry('mood');
+document.getElementById('thoughtBtn').onclick = () => addEntry('thought');
+document.getElementById('senseBtn').onclick = () => addEntry('sense');
+
 async function handleRecording(buttonId, type) {
+    if (!state.current) return alert("Bitte erst START drücken!");
     const btn = document.getElementById(buttonId);
     if (!state.isRecording) {
         try {
@@ -191,7 +457,8 @@ async function handleRecording(buttonId, type) {
             };
             state.audioRecorder.start();
             state.isRecording = true;
-            btn.innerText = "⏹️"; btn.classList.replace('bg-orange-400', 'bg-red-600');
+            btn.innerText = "⏹️";
+            btn.classList.replace('bg-orange-400', 'bg-red-600');
         } catch (err) { alert("Mikro-Zugriff verweigert."); }
     } else {
         state.audioRecorder.stop();
@@ -200,14 +467,11 @@ async function handleRecording(buttonId, type) {
         btn.classList.replace('bg-red-600', 'bg-orange-400');
     }
 }
-
 document.getElementById('audioToggle').onclick = () => handleRecording('audioToggle', 'Sound');
 document.getElementById('messageToggle').onclick = () => handleRecording('messageToggle', 'Sprachnachricht');
-document.getElementById('senseBtn').onclick = () => addEntry('sense');
-document.getElementById('thoughtBtn').onclick = () => addEntry('thought');
-document.getElementById('moodBtn').onclick = () => addEntry('mood');
 
 document.getElementById('photoBtn').onclick = () => {
+    if (!state.current) return alert("Bitte erst START drücken!");
     const input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*';
     input.onchange = e => {
@@ -218,72 +482,84 @@ document.getElementById('photoBtn').onclick = () => {
     input.click();
 };
 
+// --- ZIP EXPORT ---
 document.getElementById('exportFull').onclick = async () => {
-    const walk = state.current || state.walks[state.walks.length - 1];
-    if (!walk) return alert("Kein Walk vorhanden.");
-    
-    const zip = new JSZip();
-    const photoFolder = zip.folder("Fotos");
-    const voiceFolder = zip.folder("Stimmen");
-    const soundFolder = zip.folder("Umgebungssounds");
+    const numActiveComparisons = Object.keys(state.activeComparisonLayers).length;
+    let walkToExport, isComparisonExport = false;
+
+    if (numActiveComparisons > 0) {
+        isComparisonExport = true;
+        const firstId = Object.keys(state.activeComparisonLayers)[0];
+        walkToExport = state.walks.find(w => w.id == firstId);
+    } else {
+        walkToExport = state.current || state.walks[state.walks.length - 1];
+    }
+
+    if (!walkToExport) return alert("Kein Walk zum Exportieren da.");
+
+    const btn = document.getElementById('exportFull');
+    const originalText = btn.innerText;
+    btn.innerText = "⏳..."; btn.disabled = true;
+
+    const uiElements = document.querySelectorAll('.top-ui, .side-ui, .bottom-left, .leaflet-control-zoom, .leaflet-control-attribution');
+    uiElements.forEach(el => el.classList.add('no-print'));
 
     try {
-        const canvas = await html2canvas(document.getElementById('map'), { useCORS: true });
-        zip.file("KARTEN_ANSICHT.png", canvas.toDataURL("image/png").split(',')[1], {base64: true});
-    } catch(e) { console.log("Snapshot fehlgeschlagen"); }
+        const zip = new JSZip();
+        const photoFolder = zip.folder("Fotos");
+        zip.folder("Audio");
 
-    let protokoll = `WALK EXPORT PROTOKOLL - ${walk.id}\n\n`;
-    
-    walk.entries.forEach((e, i) => {
-        const ts = e.timestamp.replace(/:/g, '-');
-        protokoll += `[${e.timestamp}] ${e.type.toUpperCase()}: ${e.text || ""}\n`;
+        await new Promise(r => setTimeout(r, 500));
+        const canvas = await html2canvas(document.getElementById('map'), {
+            useCORS: true,
+            allowTaint: false,
+            ignoreElements: (el) => el.classList.contains('no-print'),
+            logging: false
+        });
 
-        if (e.type === 'photo' && e.photo) {
-            photoFolder.file(`FOTO_${ts}_${i}.jpg`, e.photo.split(',')[1], {base64: true});
-        }
-        if (e.audioBlob) {
-            const folder = e.type === 'Sound' ? soundFolder : voiceFolder;
-            const prefix = e.type === 'Sound' ? 'UMGEBUNG' : 'STIMME';
-            folder.file(`${prefix}_${ts}_${i}.webm`, e.audioBlob);
-        }
-    });
+        const imgName = isComparisonExport
+            ? "VERGLEICHS_ANSICHT.png"
+            : `KARTEN_ANSICHT_${walkToExport.id}.png`;
+        zip.file(imgName, canvas.toDataURL("image/png").split(',')[1], { base64: true });
 
-    zip.file("PROTOKOLL.txt", protokoll);
-    zip.file("daten.json", JSON.stringify(walk, null, 2));
+        const distStr = (walkToExport.totalDistance != null && walkToExport.totalDistance > 0)
+            ? GeoUtils.formatDistance(walkToExport.totalDistance)
+            : 'nicht verfügbar';
 
-    const content = await zip.generateAsync({type:"blob"});
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(content);
-    link.download = `Walk_Vollstaendig.zip`;
-    link.click();
+        let protokollText = `BEGLEITINSTRUMENT PROTOKOLL - ${walkToExport.name}\n`;
+        protokollText += `ID: ${walkToExport.id}\n`;
+        protokollText += `ZURÜCKGELEGTE STRECKE: ${distStr}\n`;
+        protokollText += `------------------------------------------\n\n`;
+        protokollText += `REFLEXION:\n${walkToExport.reflection || "(Keine Reflexion gespeichert)"}\n\n`;
+        protokollText += `EINTRÄGE:\n`;
+
+        walkToExport.entries.forEach((e, i) => {
+            const timeClean = e.timestamp.replace(/:/g, '-');
+            protokollText += `[${e.timestamp}] ${e.type.toUpperCase()}: ${e.text || ""}\n`;
+            if (e.type === 'photo' && e.photo) {
+                photoFolder.file(`FOTO_${timeClean}_${i}.jpg`, e.photo.split(',')[1], { base64: true });
+            }
+        });
+
+        zip.file("PROTOKOLL.txt", protokollText);
+        zip.file("rohdaten.json", JSON.stringify(walkToExport, null, 2));
+
+        const content = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = isComparisonExport ? `Analyse_Export.zip` : `Walk_Export_${walkToExport.id}.zip`;
+        link.click();
+
+    } catch (err) {
+        console.error(err);
+        alert("Export fehlgeschlagen. Siehe Konsole.");
+    } finally {
+        uiElements.forEach(el => el.classList.remove('no-print'));
+        btn.innerText = originalText; btn.disabled = false;
+    }
 };
 
-function updateArchiveUI() {
-    const list = document.getElementById('walkList');
-    list.innerHTML = "";
-    state.walks.forEach(w => {
-        const div = document.createElement('div');
-        div.className = "walk-item p-2 hover:bg-gray-100 border-b cursor-pointer";
-        div.innerText = "Tour " + w.id;
-        div.onclick = () => {
-            Object.values(state.layers).forEach(l => l.clearLayers());
-            w.entries.forEach(drawMarker);
-            if(w.route.length > 1) L.polyline(w.route, {color:'black', className:'rough-path'}).addTo(state.layers.tempo);
-        };
-        list.appendChild(div);
-    });
-}
-
-const bindToggle = (id, layer) => {
-    document.getElementById(id).onchange = e => e.target.checked ? state.map.addLayer(layer) : state.map.removeLayer(layer);
-};
-bindToggle('toggleMood', state.layers.mood);
-bindToggle('toggleThought', state.layers.thought);
-bindToggle('toggleSense', state.layers.sense);
-bindToggle('toggleSoundLayer', state.layers.sound);
-bindToggle('toggleVoiceLayer', state.layers.voice);
-bindToggle('toggleTempo', state.layers.tempo);
-
+// Start
 initMap();
 </script>
 </body>
