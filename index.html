@@ -4,32 +4,83 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
     <title>Begleitinstrument PRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        html, body, #map { height: 100%; margin: 0; background: #fff; overflow: hidden; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        html, body, #map { height: 100%; overflow: hidden; }
         #map { width: 100%; height: 100vh; z-index: 1; }
-        .top-ui, .side-ui, .bottom-left { z-index: 1000; position: fixed; }
-        .top-ui { top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
-        .side-ui { top: 70px; right: 12px; width: 250px; display: flex; flex-direction: column; gap: 10px; }
-        .bottom-left { bottom: 20px; left: 12px; display: grid; grid-template-columns: 55px 55px; gap: 10px; z-index: 1000; position: fixed; }
-        .panel { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #ddd; }
-        .btn { padding: 10px 14px; border-radius: 10px; font-weight: bold; font-size: 10px; cursor: pointer; text-transform: uppercase; border: none; }
-        .fab { width: 55px; height: 55px; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-size: 22px; border: none; box-shadow: 0 6px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 1001; }
-        .walk-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        .walk-item:hover { background-color: #f9f9f9; }
-        .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #ccc; }
-        .dist-badge { font-size: 9px; color: #888; white-space: nowrap; margin-left: auto; }
-        #liveDistDisplay { background: rgba(255,255,255,0.92); padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: #2563eb; display: none; }
+
+        /* TOP UI */
+        .top-ui {
+            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; gap: 8px; align-items: center;
+            flex-wrap: wrap; justify-content: center;
+        }
+        .btn {
+            padding: 10px 14px; border-radius: 10px; font-weight: bold;
+            font-size: 10px; cursor: pointer; text-transform: uppercase;
+            border: none; white-space: nowrap;
+        }
+        #liveDistDisplay {
+            background: rgba(255,255,255,0.92); padding: 4px 10px;
+            border-radius: 8px; font-size: 11px; font-weight: bold;
+            color: #2563eb; display: none;
+        }
+
+        /* LAYER MENU */
+        #layerMenu {
+            display: none; position: fixed; top: 52px; left: 50%;
+            transform: translateX(-50%); z-index: 2000; background: white;
+            border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 1px solid #ddd; padding: 10px;
+            flex-direction: column; gap: 6px; min-width: 200px;
+        }
+        #layerMenu.open { display: flex; }
+        #layerMenu p { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; padding: 0 4px 4px; }
+        .layer-option {
+            text-align: left; font-size: 11px; padding: 8px 12px;
+            border-radius: 8px; border: none; cursor: pointer;
+            background: #f9f9f9; color: #333;
+        }
+        .layer-option.active { background: #dbeafe; color: #1d4ed8; font-weight: bold; }
+
+        /* SIDE UI */
+        .side-ui {
+            position: fixed; top: 70px; right: 12px; width: 250px;
+            z-index: 1000; display: flex; flex-direction: column; gap: 10px;
+        }
+        .panel {
+            background: white; padding: 12px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #ddd;
+        }
+        .panel-title { font-weight: bold; font-size: 10px; text-transform: uppercase; color: #888; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .walk-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; display: flex; align-items: center; gap: 8px; }
+        .walk-item:hover { background: #f9f9f9; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #ccc; flex-shrink: 0; }
+        .dist-badge { font-size: 9px; color: #888; margin-left: auto; }
+        #reflectionPanel { display: none; }
+        #reflectionText { width: 100%; font-size: 11px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; height: 120px; margin: 6px 0; resize: none; }
+
+        /* FAB GRID — alle 6 immer sichtbar */
+        .bottom-left {
+            position: fixed; bottom: 20px; left: 12px;
+            z-index: 1001; display: grid;
+            grid-template-columns: 55px 55px; gap: 10px;
+        }
+        .fab {
+            width: 55px; height: 55px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; border: none; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
         .no-print { display: none !important; }
         .rough-path { stroke-linecap: round; }
-        #layerMenu { display: none; position: fixed; top: 50px; left: 50%; transform: translateX(-50%); z-index: 2000; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #ddd; padding: 10px; flex-direction: column; gap: 6px; min-width: 210px; }
-        #layerMenu.open { display: flex; }
-        .layer-option { text-align: left; font-size: 11px !important; padding: 8px 12px !important; }
-        .layer-option.active { background: #dbeafe !important; color: #1d4ed8 !important; }
+
+        textarea { font-family: sans-serif; }
     </style>
 </head>
 <body>
@@ -37,122 +88,107 @@
 <svg width="0" height="0" style="position:absolute">
   <filter id="roughFilter" x="-20%" y="-20%" width="140%" height="140%">
     <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise"/>
-    <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="5"/>
   </filter>
 </svg>
 
 <div id="map"></div>
 
+<!-- TOP UI -->
 <div class="top-ui">
-    <button id="startWalk" class="btn bg-blue-600 text-white">START</button>
-    <button id="stopWalk" class="btn bg-red-600 text-white">STOP/SAVE</button>
-    <button id="exportFull" class="btn bg-black text-white">ZIP EXPORT</button>
-    <button id="layerBtn" class="btn bg-gray-100 text-gray-800">&#x1F5FA;&#xFE0F; LAYER</button>
+    <button id="startWalk" class="btn" style="background:#2563eb;color:white">START</button>
+    <button id="stopWalk"  class="btn" style="background:#dc2626;color:white">STOP/SAVE</button>
+    <button id="exportFull" class="btn" style="background:#111;color:white">ZIP EXPORT</button>
+    <button id="layerBtn"  class="btn" style="background:#f3f4f6;color:#333">&#x1F5FA; LAYER</button>
     <span id="liveDistDisplay">&#x1F4CD; 0 m</span>
 </div>
 
+<!-- LAYER MENU -->
 <div id="layerMenu">
-    <p style="font-size:10px;font-weight:bold;color:#888;text-transform:uppercase;margin-bottom:2px;padding:0 4px;">Kartenansicht</p>
-    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="osm">Standard</button>
-    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="satellite">Satellit</button>
-    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="topo">Topografie</button>
-    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="bw">Graustufen</button>
-    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="dark">Dunkel</button>
+    <p>Kartenansicht</p>
+    <button class="layer-option" data-layer="osm">&#x1F5FA; Standard</button>
+    <button class="layer-option" data-layer="satellite">&#x1F6F0; Satellit</button>
+    <button class="layer-option" data-layer="topo">&#x26F0; Topografie</button>
+    <button class="layer-option" data-layer="bw">&#x25A1; Graustufen</button>
+    <button class="layer-option" data-layer="dark">&#x25CF; Dunkel</button>
 </div>
 
+<!-- SIDE UI -->
 <div class="side-ui">
-    <div class="panel max-h-[250px] overflow-y-auto">
-        <p class="font-bold text-[10px] uppercase text-gray-500 mb-2 border-b">Vergleichs-Archiv</p>
+    <div class="panel" style="max-height:250px;overflow-y:auto">
+        <div class="panel-title">Vergleichs-Archiv</div>
         <div id="walkList"></div>
     </div>
-    <div class="panel" id="reflectionPanel" style="display:none;">
-        <p class="font-bold text-[10px] uppercase text-blue-600 mb-1">Reflexion: <span id="activeWalkName" class="text-gray-600"></span></p>
-        <textarea id="reflectionText" class="w-full text-xs p-2 border rounded h-32 mb-2" placeholder="Deine Analyse hier..."></textarea>
-        <button id="saveReflection" class="btn bg-blue-100 text-blue-700 w-full">Reflexion Speichern</button>
+    <div class="panel" id="reflectionPanel">
+        <div class="panel-title" style="color:#2563eb">Reflexion: <span id="activeWalkName" style="color:#555;font-weight:normal"></span></div>
+        <textarea id="reflectionText" placeholder="Deine Analyse hier..."></textarea>
+        <button id="saveReflection" class="btn" style="background:#dbeafe;color:#1d4ed8;width:100%">Reflexion Speichern</button>
     </div>
 </div>
 
+<!-- FABs — Inline-Styles, kein Tailwind -->
 <div class="bottom-left">
-    <button id="photoBtn"      class="fab bg-white">&#x1F4F8;</button>
-    <button id="audioToggle"   class="fab bg-orange-400 text-white">&#x25B6;&#xFE0F;</button>
-    <button id="senseBtn"      class="fab bg-[#3d633d] text-white">&#x1F441;&#xFE0F;</button>
-    <button id="thoughtBtn"    class="fab bg-[#12345f] text-white">&#x1F4AD;</button>
-    <button id="messageToggle" class="fab bg-orange-400 text-white">&#x1F4AC;</button>
-    <button id="moodBtn"       class="fab" style="background:radial-gradient(circle,#ff8c00,#ff4500);">&#x1F50B;</button>
+    <button id="photoBtn"      class="fab" style="background:white">&#x1F4F8;</button>
+    <button id="audioToggle"   class="fab" style="background:#f97316;color:white">&#x25B6;&#xFE0F;</button>
+    <button id="senseBtn"      class="fab" style="background:#3d633d;color:white">&#x1F441;&#xFE0F;</button>
+    <button id="thoughtBtn"    class="fab" style="background:#12345f;color:white">&#x1F4AD;</button>
+    <button id="messageToggle" class="fab" style="background:#f97316;color:white">&#x1F4AC;</button>
+    <button id="moodBtn"       class="fab" style="background:radial-gradient(circle,#ff8c00,#ff4500)">&#x1F50B;</button>
 </div>
 
 <script>
-(function() {
+// ============================================================
+// ALLES in DOMContentLoaded — FIX #1
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
 
-// ============================================================
-// GeoUtils
-// ============================================================
-class GeoUtils {
-    static toRad(a) { return a * Math.PI / 180; }
-    static haversineDistance(lat1, lon1, lat2, lon2) {
-        var R = 6371;
-        var dLat = GeoUtils.toRad(lat2 - lat1);
-        var dLon = GeoUtils.toRad(lon2 - lon1);
-        var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-                Math.cos(GeoUtils.toRad(lat1))*Math.cos(GeoUtils.toRad(lat2))*
-                Math.sin(dLon/2)*Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-    static formatDistance(km) {
-        if (km < 1) return Math.round(km * 1000) + ' m';
-        return km.toFixed(2) + ' km';
-    }
-}
-
-// ============================================================
-// KONFIGURATION
-// ============================================================
-var walkColors = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#46f0f0','#f032e6'];
-
-var tileLayerDefs = {
-    osm:       { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                       attr: '\u00a9 OpenStreetMap' },
-    satellite: { url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',                      attr: '\u00a9 Google Satellite' },
-    topo:      { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                         attr: '\u00a9 OpenTopoMap' },
-    bw:        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',           attr: '\u00a9 CartoDB' },
-    dark:      { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',            attr: '\u00a9 CartoDB' }
+// ---- GeoUtils ----
+var GEO = {
+    toRad: function(a) { return a * Math.PI / 180; },
+    dist: function(la1,lo1,la2,lo2) {
+        var R=6371, dLa=GEO.toRad(la2-la1), dLo=GEO.toRad(lo2-lo1);
+        var a=Math.sin(dLa/2)*Math.sin(dLa/2)+
+              Math.cos(GEO.toRad(la1))*Math.cos(GEO.toRad(la2))*
+              Math.sin(dLo/2)*Math.sin(dLo/2);
+        return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    },
+    fmt: function(km) { return km<1 ? Math.round(km*1000)+' m' : km.toFixed(2)+' km'; }
 };
 
-// ============================================================
-// STATE
-// ============================================================
-var state = {
+var COLORS = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#46f0f0','#f032e6'];
+
+var TILES = {
+    osm:       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    satellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    topo:      'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    bw:        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    dark:      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+};
+
+// ---- STATE ----
+var S = {
     walks: JSON.parse(localStorage.getItem('psychogeo_walks') || '[]'),
     current: null,
     map: null,
+    tempGroup: null,   // FIX #3 — initialisiert in initMap()
     liveMarker: null,
-    activeComparisonLayers: {},
-    currentTileLayer: null,
-    audioRecorder: null,
-    audioChunks: [],
-    isRecording: false,
-    sessionAudioBlobs: {}
+    compareLayers: {},
+    tileLayer: null,
+    recorder: null,
+    chunks: [],
+    recording: false,
+    audioBlobs: {}
 };
 
-// ============================================================
-// LAYER SWITCHER
-// ============================================================
+// ---- LAYER SWITCHER ----
 function switchLayer(key) {
-    if (!state.map) return;
-    var cfg = tileLayerDefs[key];
-    if (!cfg) return;
-    if (state.currentTileLayer) {
-        state.map.removeLayer(state.currentTileLayer);
-        state.currentTileLayer = null;
-    }
-    state.currentTileLayer = L.tileLayer(cfg.url, {
-        crossOrigin: true,
-        attribution: cfg.attr,
-        maxZoom: 19
-    });
-    state.currentTileLayer.addTo(state.map);
-    state.currentTileLayer.bringToBack();
-    document.querySelectorAll('.layer-option').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.layer === key);
+    if (!S.map || !TILES[key]) return;
+    if (S.tileLayer) { S.map.removeLayer(S.tileLayer); S.tileLayer = null; }
+    S.tileLayer = L.tileLayer(TILES[key], { maxZoom: 19 });
+    S.tileLayer.addTo(S.map);
+    S.tileLayer.bringToBack();
+    document.querySelectorAll('.layer-option').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.layer === key);
     });
     localStorage.setItem('psychogeo_layer', key);
     document.getElementById('layerMenu').classList.remove('open');
@@ -162,102 +198,67 @@ document.getElementById('layerBtn').addEventListener('click', function(e) {
     e.stopPropagation();
     document.getElementById('layerMenu').classList.toggle('open');
 });
-
-document.querySelectorAll('.layer-option').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        switchLayer(btn.dataset.layer);
-    });
+document.querySelectorAll('.layer-option').forEach(function(b) {
+    b.addEventListener('click', function() { switchLayer(b.dataset.layer); });
 });
-
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('#layerMenu') && e.target.id !== 'layerBtn') {
+    if (!e.target.closest('#layerMenu') && e.target.id !== 'layerBtn')
         document.getElementById('layerMenu').classList.remove('open');
-    }
 });
 
-// ============================================================
-// INITIALISIERUNG
-// ============================================================
+// ---- INIT MAP ----
 function initMap() {
-    state.map = L.map('map', { zoomControl: false, preferCanvas: false }).setView([47.23, 9.61], 15);
-    var saved = localStorage.getItem('psychogeo_layer') || 'osm';
-    switchLayer(saved);
-    navigator.geolocation.watchPosition(onLocationUpdate, onLocationError, { enableHighAccuracy: true });
-    updateArchiveUI();
+    S.map = L.map('map', { zoomControl: false }).setView([47.23, 9.61], 15);
+    S.tempGroup = L.layerGroup().addTo(S.map); // FIX #3
+    switchLayer(localStorage.getItem('psychogeo_layer') || 'osm');
+    navigator.geolocation.watchPosition(onGPS, function(e){ console.warn(e.message); }, { enableHighAccuracy: true });
+    renderArchive();
 }
 
-// ============================================================
-// GEOLOCATION
-// ============================================================
-function onLocationUpdate(pos) {
-    var lat = pos.coords.latitude;
-    var lng = pos.coords.longitude;
-    var latlng = [lat, lng];
-    var now = Date.now();
+// ---- GPS ----
+function onGPS(pos) {
+    var lt = pos.coords.latitude, ln = pos.coords.longitude;
+    var ll = [lt, ln], now = Date.now();
+    if (!S.liveMarker) {
+        S.liveMarker = L.circleMarker(ll, { radius:8, fillColor:'#2563eb', color:'#fff', weight:2, fillOpacity:1 }).addTo(S.map);
+        S.map.panTo(ll);
+    } else { S.liveMarker.setLatLng(ll); }
 
-    if (!state.liveMarker) {
-        state.liveMarker = L.circleMarker(latlng, {
-            radius: 8, fillColor: '#2563eb', color: '#fff', weight: 2, fillOpacity: 1
-        }).addTo(state.map);
-        state.map.panTo(latlng);
-    } else {
-        state.liveMarker.setLatLng(latlng);
-    }
-
-    if (state.current) {
-        var route = state.current.route;
-        var times = state.current.routeTimes;
-        if (route.length > 0) {
-            var prev = route[route.length - 1];
-            var prevTime = times[times.length - 1];
-            var segKm = GeoUtils.haversineDistance(prev[0], prev[1], lat, lng);
-            state.current.totalDistance += segKm;
-            var dtH = (now - prevTime) / 3600000;
-            var spd = dtH > 0 ? segKm / dtH : 0;
-            drawSpeedSegment([prev, latlng], spd);
-            document.getElementById('liveDistDisplay').textContent =
-                '\uD83D\uDCCD ' + GeoUtils.formatDistance(state.current.totalDistance);
+    if (S.current) {
+        var r = S.current.route, t = S.current.routeTimes;
+        if (r.length > 0) {
+            var prev = r[r.length-1], pt = t[t.length-1];
+            var km = GEO.dist(prev[0],prev[1],lt,ln);
+            S.current.totalDistance += km;
+            var spd = (now-pt)>0 ? km/((now-pt)/3600000) : 0;
+            drawSeg([prev,ll], spd);
+            document.getElementById('liveDistDisplay').textContent = '\uD83D\uDCCD ' + GEO.fmt(S.current.totalDistance);
         }
-        route.push(latlng);
-        times.push(now);
+        r.push(ll); t.push(now);
     }
 }
 
-function onLocationError(err) { console.warn('GPS: ' + err.message); }
-
-// ============================================================
-// SPEED SEGMENT
-// ============================================================
-function drawSpeedSegment(points, speedKmh) {
-    var ratio = Math.min(speedKmh / 6, 1);
-    var weight = Math.round(14 - ratio * 13);
-    var opacity = 0.9 - ratio * 0.84;
-    var color = state.current ? state.current.color : '#2563eb';
-    var seg = L.polyline(points, {
-        color: color, weight: weight, opacity: opacity,
-        lineCap: 'round', lineJoin: 'round', className: 'rough-path'
-    }).addTo(state.map);
+function drawSeg(pts, spd) {
+    var r = Math.min(spd/6,1);
+    var seg = L.polyline(pts, {
+        color: S.current ? S.current.color : '#2563eb',
+        weight: Math.round(14-r*13), opacity: 0.9-r*0.84,
+        lineCap:'round', lineJoin:'round', className:'rough-path'
+    }).addTo(S.map);
     var el = seg.getElement();
-    if (el) el.setAttribute('filter', 'url(#roughFilter)');
-    if (state.current) {
-        if (!state.current.segments) state.current.segments = [];
-        state.current.segments.push(seg);
-    }
+    if (el) el.setAttribute('filter','url(#roughFilter)');
 }
 
-// ============================================================
-// WALK STEUERUNG
-// ============================================================
+// ---- WALK START/STOP ----
 document.getElementById('startWalk').addEventListener('click', function() {
-    if (state.current) { alert('Walk l\u00e4uft bereits!'); return; }
-    clearAllComparisonLayers();
-    var color = walkColors[state.walks.length % walkColors.length];
-    state.current = {
-        id: Date.now(),
-        startTime: new Date().toISOString(),
+    if (S.current) { alert('Walk l\u00e4uft bereits!'); return; }
+    clearCompare();
+    S.current = {
+        id: Date.now(), startTime: new Date().toISOString(),
         name: new Date().toLocaleString('de-DE'),
-        route: [], routeTimes: [], segments: [],
-        entries: [], color: color, reflection: '', totalDistance: 0
+        route:[], routeTimes:[], entries:[], segments:[],
+        color: COLORS[S.walks.length % COLORS.length],
+        reflection:'', totalDistance:0
     };
     var d = document.getElementById('liveDistDisplay');
     d.style.display = 'inline-block';
@@ -266,488 +267,371 @@ document.getElementById('startWalk').addEventListener('click', function() {
 });
 
 document.getElementById('stopWalk').addEventListener('click', function() {
-    if (!state.current) { alert('Kein aktiver Walk!'); return; }
-    if (state.current.route.length < 2) {
-        if (!confirm('Strecke ist sehr kurz. Trotzdem speichern?')) return;
-    }
-    state.current.totalDistance = parseFloat(state.current.totalDistance.toFixed(4));
-    state.current.segments = [];
-    state.walks.push(state.current);
-    saveToLocalStorage();
-    updateArchiveUI();
+    if (!S.current) { alert('Kein aktiver Walk!'); return; }
+    if (S.current.route.length < 2 && !confirm('Strecke sehr kurz. Trotzdem speichern?')) return;
+    S.current.totalDistance = parseFloat(S.current.totalDistance.toFixed(4));
+    S.current.segments = [];
+    S.walks.push(S.current);
+    saveLS();
+    renderArchive();
     document.getElementById('liveDistDisplay').style.display = 'none';
-    var dist = state.current.totalDistance;
-    state.current = null;
-    alert('Walk gespeichert. Strecke: ' + GeoUtils.formatDistance(dist));
+    var d = S.current.totalDistance;
+    S.current = null;
+    alert('Gespeichert. Strecke: ' + GEO.fmt(d));
 });
 
-// ============================================================
-// DATENERHEBUNG
-// ============================================================
+// ---- EINTRAEGE ----
 function addEntry(type, data) {
-    data = data || {};
-    if (!state.current) { alert('Bitte erst START dr\u00fccken!'); return; }
-    if (!state.liveMarker) { alert('Warte auf GPS Signal...'); return; }
-    var pos = state.liveMarker.getLatLng();
-
-    function processEntry(finalData) {
-        var entry = Object.assign({
-            type: type,
-            location: { lat: pos.lat, lng: pos.lng },
+    if (!S.current) { alert('Bitte erst START dr\u00fccken!'); return; }
+    if (!S.liveMarker) { alert('Warte auf GPS...'); return; }
+    var pos = S.liveMarker.getLatLng();
+    function save(extra) {
+        var entry = Object.assign({ type:type, location:{lat:pos.lat,lng:pos.lng},
             timestamp: new Date().toLocaleTimeString('de-DE'),
-            isoDate: new Date().toISOString()
-        }, finalData);
-        state.current.entries.push(entry);
-        drawTempMarker(entry);
+            isoDate: new Date().toISOString() }, extra);
+        S.current.entries.push(entry);
+        drawMarker(entry);
     }
-
-    if (type === 'mood' || type === 'thought' || type === 'sense') {
-        var prompts = { mood: 'Stimmung beschreiben:', thought: 'Gedanke?', sense: 'Wahrnehmung?' };
-        var text = prompt(prompts[type]);
-        if (text === null) return;
-        processEntry({ text: text || '(Keine Eingabe)' });
-    } else {
-        processEntry(data);
-    }
+    if (type==='mood'||type==='thought'||type==='sense') {
+        var p = {mood:'Stimmung:',thought:'Gedanke?',sense:'Wahrnehmung?'}[type];
+        var t = prompt(p); if (t===null) return;
+        save({ text: t||'(leer)' });
+    } else { save(data||{}); }
 }
 
-// ============================================================
-// TEMP MARKER — alle klickbar mit Popup
-// ============================================================
-var tempLayerGroup = L.layerGroup();
-var tempAdded = false;
-
-function drawTempMarker(e) {
-    if (!tempAdded) { tempLayerGroup.addTo(state.map); tempAdded = true; }
+// ---- MARKER MIT POPUP — FIX #3 ----
+function drawMarker(e) {
     var loc = [e.location.lat, e.location.lng];
+    var ICONS = { mood:'\uD83D\uDD0B', thought:'\uD83D\uDCAD', sense:'\uD83D\uDC41\uFE0F' };
+    var LABS  = { mood:'STIMMUNG', thought:'GEDANKE', sense:'WAHRNEHMUNG' };
 
-    if (e.type === 'mood' || e.type === 'thought' || e.type === 'sense') {
-        var icons = { mood: '\uD83D\uDD0B', thought: '\uD83D\uDCAD', sense: '\uD83D\uDC41\uFE0F' };
-        var label = { mood: 'STIMMUNG', thought: 'GEDANKE', sense: 'WAHRNEHMUNG' };
-        var ic = icons[e.type];
-        var lb = label[e.type];
-        L.circleMarker(loc, {
-            radius: 8, fillColor: '#2563eb', color: '#fff', weight: 2, fillOpacity: 1
-        }).addTo(tempLayerGroup).bindPopup(
-            '<b>' + ic + ' ' + lb + '</b><br>' +
-            '<span style="font-size:12px">' + (e.text || '(Keine Eingabe)') + '</span><br>' +
-            '<span style="font-size:10px;color:#888">\uD83D\uDD50 ' + e.timestamp + '</span>'
-        );
+    if (e.type==='mood'||e.type==='thought'||e.type==='sense') {
+        L.circleMarker(loc, { radius:8, fillColor:'#2563eb', color:'#fff', weight:2, fillOpacity:1 })
+        .addTo(S.tempGroup)
+        .bindPopup('<b>'+ICONS[e.type]+' '+LABS[e.type]+'</b><br>'+
+            '<span style="font-size:12px">'+(e.text||'')+'</span><br>'+
+            '<span style="font-size:10px;color:#888">\u23F0 '+e.timestamp+'</span>');
 
-    } else if (e.type === 'photo') {
-        L.marker(loc, { icon: L.divIcon({ html: '\uD83D\uDCF8', className: '' }) })
-        .addTo(tempLayerGroup).bindPopup(
-            '<b>\uD83D\uDCF8 FOTO</b><br>' +
-            '<img src="' + e.photo + '" style="width:160px;border-radius:6px;margin-top:4px"><br>' +
-            '<span style="font-size:10px;color:#888">\uD83D\uDD50 ' + e.timestamp + '</span>'
-        );
+    } else if (e.type==='photo') {
+        L.marker(loc, { icon: L.divIcon({ html:'\uD83D\uDCF8', className:'' }) })
+        .addTo(S.tempGroup)
+        .bindPopup('<b>\uD83D\uDCF8 FOTO</b><br>'+
+            '<img src="'+e.photo+'" style="width:160px;border-radius:6px;margin-top:4px"><br>'+
+            '<span style="font-size:10px;color:#888">\u23F0 '+e.timestamp+'</span>');
 
-    } else if (e.type === 'Sound' || e.type === 'Sprachnachricht') {
-        var icoTxt = e.type === 'Sound' ? '\uD83D\uDD0A' : '\uD83D\uDCAC';
-        L.marker(loc, { icon: L.divIcon({ html: icoTxt, className: '' }) })
-        .addTo(tempLayerGroup).bindPopup(
-            '<b>' + icoTxt + ' ' + e.type.toUpperCase() + '</b><br>' +
-            '<audio controls src="' + e.audioUrl + '" style="margin-top:4px;width:160px"></audio><br>' +
-            '<span style="font-size:10px;color:#888">\uD83D\uDD50 ' + e.timestamp + '</span>'
-        );
+    } else if (e.type==='Sound'||e.type==='Sprachnachricht') {
+        var ic = e.type==='Sound' ? '\uD83D\uDD0A' : '\uD83D\uDCAC';
+        L.marker(loc, { icon: L.divIcon({ html:ic, className:'' }) })
+        .addTo(S.tempGroup)
+        .bindPopup('<b>'+ic+' '+e.type.toUpperCase()+'</b><br>'+
+            '<audio controls src="'+e.audioUrl+'" style="width:160px;margin-top:4px"></audio><br>'+
+            '<span style="font-size:10px;color:#888">\u23F0 '+e.timestamp+'</span>');
     }
 }
 
-// ============================================================
-// VERGLEICH
-// ============================================================
-function toggleWalkComparison(id) {
-    var walkId = parseInt(id);
-    var walk = state.walks.find(function(w) { return w.id === walkId; });
-    if (!walk) return;
-    if (state.current) { alert('Bitte beende erst die aktuelle Aufnahme.'); updateArchiveUI(); return; }
+// ---- FAB EVENTS ----
+document.getElementById('moodBtn').addEventListener('click',    function(){ addEntry('mood'); });
+document.getElementById('thoughtBtn').addEventListener('click', function(){ addEntry('thought'); });
+document.getElementById('senseBtn').addEventListener('click',   function(){ addEntry('sense'); });
 
-    if (state.activeComparisonLayers[walkId]) {
-        state.map.removeLayer(state.activeComparisonLayers[walkId]);
-        delete state.activeComparisonLayers[walkId];
-        hideReflectionPanel();
+document.getElementById('photoBtn').addEventListener('click', function() {
+    if (!S.current) { alert('Bitte erst START dr\u00fccken!'); return; }
+    var inp = document.createElement('input');
+    inp.type='file'; inp.accept='image/*';
+    inp.onchange = function(ev) {
+        var r = new FileReader();
+        r.onload = function(x) { addEntry('photo',{ photo: x.target.result }); };
+        r.readAsDataURL(ev.target.files[0]);
+    };
+    inp.click();
+});
+
+// FIX #2 — Audio: Inline-Style statt classList.replace
+function handleRec(btnId, type) {
+    if (!S.current) { alert('Bitte erst START dr\u00fccken!'); return; }
+    var btn = document.getElementById(btnId);
+    if (!S.recording) {
+        navigator.mediaDevices.getUserMedia({ audio:true }).then(function(stream) {
+            S.recorder = new MediaRecorder(stream);
+            S.chunks = [];
+            S.recorder.ondataavailable = function(e){ S.chunks.push(e.data); };
+            S.recorder.onstop = function() {
+                var blob = new Blob(S.chunks,{type:'audio/webm'});
+                var url = URL.createObjectURL(blob);
+                var key = 'audio_'+Date.now();
+                S.audioBlobs[key] = blob;
+                addEntry(type,{ audioUrl:url, audioBlobKey:key });
+            };
+            S.recorder.start();
+            S.recording = true;
+            btn.textContent = '\u23F9\uFE0F';
+            btn.style.background = '#dc2626'; // FIX #2: inline style
+        }).catch(function(){ alert('Mikrofon-Zugriff verweigert.'); });
     } else {
-        var group = L.layerGroup();
-        var poly = L.polyline(walk.route, {
-            color: walk.color, weight: 5, opacity: 0.75,
-            lineCap: 'round', lineJoin: 'round', className: 'rough-path'
-        }).addTo(group);
-        var el = poly.getElement();
-        if (el) el.setAttribute('filter', 'url(#roughFilter)');
+        S.recorder.stop();
+        S.recording = false;
+        btn.textContent = type==='Sound' ? '\u25B6\uFE0F' : '\uD83D\uDCAC';
+        btn.style.background = '#f97316'; // FIX #2: inline style zurück
+    }
+}
+document.getElementById('audioToggle').addEventListener('click',   function(){ handleRec('audioToggle','Sound'); });
+document.getElementById('messageToggle').addEventListener('click', function(){ handleRec('messageToggle','Sprachnachricht'); });
+
+// ---- VERGLEICH ----
+function toggleCompare(id) {
+    var wid = parseInt(id);
+    var walk = S.walks.find(function(w){ return w.id===wid; });
+    if (!walk) return;
+    if (S.current) { alert('Bitte beende erst den aktuellen Walk.'); renderArchive(); return; }
+
+    if (S.compareLayers[wid]) {
+        S.map.removeLayer(S.compareLayers[wid]);
+        delete S.compareLayers[wid];
+        hideReflection();
+    } else {
+        var g = L.layerGroup();
+        var pl = L.polyline(walk.route,{
+            color:walk.color, weight:5, opacity:0.75,
+            lineCap:'round', lineJoin:'round', className:'rough-path'
+        }).addTo(g);
+        var el = pl.getElement();
+        if (el) el.setAttribute('filter','url(#roughFilter)');
+
+        var ICONS = { mood:'\uD83D\uDD0B', thought:'\uD83D\uDCAD', sense:'\uD83D\uDC41\uFE0F' };
+        var LABS  = { mood:'STIMMUNG', thought:'GEDANKE', sense:'WAHRNEHMUNG' };
 
         walk.entries.forEach(function(e) {
-            var loc = [e.location.lat, e.location.lng];
-            if (e.type === 'mood' || e.type === 'thought' || e.type === 'sense') {
-                var icons = { mood: '\uD83D\uDD0B', thought: '\uD83D\uDCAD', sense: '\uD83D\uDC41\uFE0F' };
-                var label = { mood: 'STIMMUNG', thought: 'GEDANKE', sense: 'WAHRNEHMUNG' };
-                L.circleMarker(loc, {
-                    radius: 8, fillColor: walk.color, color: '#fff', weight: 2, fillOpacity: 1
-                }).addTo(group).bindPopup(
-                    '<b>' + icons[e.type] + ' ' + label[e.type] + '</b><br>' +
-                    '<span style="font-size:12px">' + (e.text || '') + '</span><br>' +
-                    '<span style="font-size:10px;color:#888">\uD83D\uDD50 ' + e.timestamp + '</span>'
-                );
-            } else if (e.type === 'photo') {
-                L.marker(loc, { icon: L.divIcon({ html: '\uD83D\uDCF8', className: '' }) })
-                .addTo(group).bindPopup(
-                    '<b>\uD83D\uDCF8 FOTO</b><br>' +
-                    '<img src="' + e.photo + '" style="width:160px;border-radius:6px;margin-top:4px"><br>' +
-                    '<span style="font-size:10px;color:#888">\uD83D\uDD50 ' + e.timestamp + '</span>'
-                );
-            } else if (e.type === 'Sound' || e.type === 'Sprachnachricht') {
-                var icoTxt = e.type === 'Sound' ? '\uD83D\uDD0A' : '\uD83D\uDCAC';
-                L.marker(loc, { icon: L.divIcon({ html: icoTxt, className: '' }) })
-                .addTo(group).bindPopup(
-                    '<b>' + icoTxt + ' ' + e.type.toUpperCase() + '</b><br>' +
-                    '<audio controls src="' + e.audioUrl + '" style="margin-top:4px;width:160px"></audio><br>' +
-                    '<span style="font-size:10px;color:#888">\uD83D\uDD50 ' + e.timestamp + '</span>'
-                );
+            var loc=[e.location.lat,e.location.lng];
+            if (e.type==='mood'||e.type==='thought'||e.type==='sense') {
+                L.circleMarker(loc,{radius:8,fillColor:walk.color,color:'#fff',weight:2,fillOpacity:1})
+                .addTo(g).bindPopup('<b>'+ICONS[e.type]+' '+LABS[e.type]+'</b><br>'+
+                    '<span style="font-size:12px">'+(e.text||'')+'</span><br>'+
+                    '<span style="font-size:10px;color:#888">\u23F0 '+e.timestamp+'</span>');
+            } else if (e.type==='photo') {
+                L.marker(loc,{icon:L.divIcon({html:'\uD83D\uDCF8',className:''})})
+                .addTo(g).bindPopup('<b>\uD83D\uDCF8 FOTO</b><br>'+
+                    '<img src="'+e.photo+'" style="width:160px;border-radius:6px;margin-top:4px"><br>'+
+                    '<span style="font-size:10px;color:#888">\u23F0 '+e.timestamp+'</span>');
+            } else if (e.type==='Sound'||e.type==='Sprachnachricht') {
+                var ic=e.type==='Sound'?'\uD83D\uDD0A':'\uD83D\uDCAC';
+                L.marker(loc,{icon:L.divIcon({html:ic,className:''})})
+                .addTo(g).bindPopup('<b>'+ic+' '+e.type.toUpperCase()+'</b><br>'+
+                    '<audio controls src="'+e.audioUrl+'" style="width:160px;margin-top:4px"></audio><br>'+
+                    '<span style="font-size:10px;color:#888">\u23F0 '+e.timestamp+'</span>');
             }
         });
-
-        group.addTo(state.map);
-        state.activeComparisonLayers[walkId] = group;
-        showReflectionPanel(walk);
+        g.addTo(S.map);
+        S.compareLayers[wid] = g;
+        showReflection(walk);
     }
 }
+window.toggleWalkComparison = toggleCompare; // global für onchange
 
-function clearAllComparisonLayers() {
-    Object.values(state.activeComparisonLayers).forEach(function(l) { state.map.removeLayer(l); });
-    state.activeComparisonLayers = {};
-    hideReflectionPanel();
-    updateArchiveUI();
+function clearCompare() {
+    Object.values(S.compareLayers).forEach(function(l){ S.map.removeLayer(l); });
+    S.compareLayers = {};
+    hideReflection();
+    renderArchive();
 }
 
-// ============================================================
-// REFLEXION
-// ============================================================
-function showReflectionPanel(walk) {
-    document.getElementById('reflectionPanel').style.display = 'block';
-    document.getElementById('activeWalkName').innerText = walk.name;
+// ---- REFLEXION ----
+function showReflection(walk) {
+    var p = document.getElementById('reflectionPanel');
+    p.style.display = 'block';
+    document.getElementById('activeWalkName').textContent = walk.name;
     var ta = document.getElementById('reflectionText');
     ta.value = walk.reflection || '';
-    ta.dataset.activeWalkId = walk.id;
+    ta.dataset.wid = walk.id;
 }
-function hideReflectionPanel() {
+function hideReflection() {
     document.getElementById('reflectionPanel').style.display = 'none';
 }
 document.getElementById('saveReflection').addEventListener('click', function() {
     var ta = document.getElementById('reflectionText');
-    var walkId = parseInt(ta.dataset.activeWalkId);
-    if (!walkId) return;
-    var walk = state.walks.find(function(w) { return w.id === walkId; });
-    if (walk) { walk.reflection = ta.value; saveToLocalStorage(); alert('Reflexion gespeichert.'); }
+    var wid = parseInt(ta.dataset.wid);
+    var walk = S.walks.find(function(w){ return w.id===wid; });
+    if (walk) { walk.reflection=ta.value; saveLS(); alert('Gespeichert.'); }
 });
 
-// ============================================================
-// STORAGE
-// ============================================================
-function saveToLocalStorage() {
-    var clean = state.walks.map(function(w) {
-        return Object.assign({}, w, {
-            segments: [],
-            entries: w.entries.map(function(e) {
-                var c = Object.assign({}, e);
-                delete c.audioBlob;
-                return c;
-            })
-        });
+// ---- STORAGE ----
+function saveLS() {
+    var c = S.walks.map(function(w) {
+        return Object.assign({},w,{segments:[],entries:w.entries.map(function(e){
+            var x=Object.assign({},e); delete x.audioBlob; return x;
+        })});
     });
-    localStorage.setItem('psychogeo_walks', JSON.stringify(clean));
+    localStorage.setItem('psychogeo_walks', JSON.stringify(c));
 }
 
-// ============================================================
-// ARCHIV UI
-// ============================================================
-function updateArchiveUI() {
+// ---- ARCHIV UI ----
+function renderArchive() {
     var list = document.getElementById('walkList');
     list.innerHTML = '';
-    if (state.walks.length === 0) {
-        list.innerHTML = '<p style="font-size:11px;color:#aaa;padding:8px">Noch keine Walks gespeichert.</p>';
+    if (!S.walks.length) {
+        list.innerHTML = '<p style="font-size:11px;color:#aaa;padding:8px">Noch keine Walks.</p>';
         return;
     }
-    state.walks.forEach(function(w) {
-        var isActive = !!state.activeComparisonLayers[w.id];
-        var distLabel = w.totalDistance > 0 ? GeoUtils.formatDistance(w.totalDistance) : '-- m';
+    S.walks.forEach(function(w) {
         var div = document.createElement('div');
         div.className = 'walk-item';
+        var chk = !!S.compareLayers[w.id];
         div.innerHTML =
-            '<input type="checkbox"' + (isActive ? ' checked' : '') +
-            ' onchange="toggleWalkComparison(' + w.id + ')">' +
-            '<span class="color-dot" style="background:' + w.color + '"></span>' +
-            '<span style="flex-grow:1">' + w.name + '</span>' +
-            '<span class="dist-badge">' + distLabel + '</span>';
+            '<input type="checkbox"'+(chk?' checked':'')+
+            ' onchange="toggleWalkComparison('+w.id+')">'+
+            '<span class="color-dot" style="background:'+w.color+'"></span>'+
+            '<span style="flex:1;font-size:11px">'+w.name+'</span>'+
+            '<span class="dist-badge">'+GEO.fmt(w.totalDistance||0)+'</span>';
         list.appendChild(div);
     });
 }
 
-// ============================================================
-// AUDIO
-// ============================================================
-function handleRecording(buttonId, type) {
-    if (!state.current) { alert('Bitte erst START dr\u00fccken!'); return; }
-    var btn = document.getElementById(buttonId);
-    if (!state.isRecording) {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
-            state.audioRecorder = new MediaRecorder(stream);
-            state.audioChunks = [];
-            state.audioRecorder.ondataavailable = function(e) { state.audioChunks.push(e.data); };
-            state.audioRecorder.onstop = function() {
-                var blob = new Blob(state.audioChunks, { type: 'audio/webm' });
-                var audioUrl = URL.createObjectURL(blob);
-                var key = 'audio_' + Date.now();
-                state.sessionAudioBlobs[key] = blob;
-                addEntry(type, { audioUrl: audioUrl, audioBlobKey: key });
-            };
-            state.audioRecorder.start();
-            state.isRecording = true;
-            btn.textContent = '\u23F9\uFE0F';
-            btn.style.background = '#dc2626';
-        }).catch(function() { alert('Mikro-Zugriff verweigert.'); });
-    } else {
-        state.audioRecorder.stop();
-        state.isRecording = false;
-        btn.textContent = type === 'Sound' ? '\u25B6\uFE0F' : '\uD83D\uDCAC';
-        btn.style.background = '';
-        btn.classList.add('bg-orange-400');
-    }
-}
-
-document.getElementById('audioToggle').addEventListener('click', function() { handleRecording('audioToggle', 'Sound'); });
-document.getElementById('messageToggle').addEventListener('click', function() { handleRecording('messageToggle', 'Sprachnachricht'); });
-document.getElementById('moodBtn').addEventListener('click', function() { addEntry('mood'); });
-document.getElementById('thoughtBtn').addEventListener('click', function() { addEntry('thought'); });
-document.getElementById('senseBtn').addEventListener('click', function() { addEntry('sense'); });
-document.getElementById('photoBtn').addEventListener('click', function() {
-    if (!state.current) { alert('Bitte erst START dr\u00fccken!'); return; }
-    var input = document.createElement('input');
-    input.type = 'file'; input.accept = 'image/*';
-    input.onchange = function(e) {
-        var reader = new FileReader();
-        reader.onload = function(ev) { addEntry('photo', { photo: ev.target.result }); };
-        reader.readAsDataURL(e.target.files[0]);
-    };
-    input.click();
-});
-
-// ============================================================
-// SCREENSHOT
-// ============================================================
-function waitForTiles() {
-    return new Promise(function(resolve) {
-        function check() {
-            var tiles = document.querySelectorAll('.leaflet-tile');
-            var ok = Array.from(tiles).every(function(t) { return t.complete && t.naturalWidth > 0; });
-            if (ok && tiles.length > 0) resolve(); else setTimeout(check, 200);
-        }
-        check();
+// ---- SCREENSHOT ----
+function waitTiles() {
+    return new Promise(function(res) {
+        (function chk() {
+            var t = document.querySelectorAll('.leaflet-tile');
+            if (t.length && Array.from(t).every(function(x){return x.complete&&x.naturalWidth>0;})) res();
+            else setTimeout(chk,200);
+        })();
     });
 }
+function applyF()  { document.querySelectorAll('.rough-path').forEach(function(el){el.setAttribute('filter','url(#roughFilter)');}); }
+function removeF() { document.querySelectorAll('.rough-path').forEach(function(el){el.removeAttribute('filter');}); }
 
-function applyFilterInline() {
-    document.querySelectorAll('.rough-path').forEach(function(el) { el.setAttribute('filter','url(#roughFilter)'); });
-}
-function removeFilterInline() {
-    document.querySelectorAll('.rough-path').forEach(function(el) { el.removeAttribute('filter'); });
-}
-
-function showAllEntryLabels(walksArr) {
-    walksArr.forEach(function(walk) {
-        walk.entries.forEach(function(e) {
-            if (e.type !== 'mood' && e.type !== 'thought' && e.type !== 'sense') return;
-            var icons = { mood: '\uD83D\uDD0B', thought: '\uD83D\uDCAD', sense: '\uD83D\uDC41\uFE0F' };
-            var txt = (e.text || '').slice(0,30) + (e.text && e.text.length > 30 ? '\u2026' : '');
-            var lbl = L.marker([e.location.lat, e.location.lng], {
-                icon: L.divIcon({
-                    html: '<div style="background:white;border:2px solid ' + walk.color + ';border-radius:6px;padding:2px 6px;font-size:9px;font-family:sans-serif;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.2);max-width:130px;overflow:hidden;text-overflow:ellipsis">' + icons[e.type] + ' ' + txt + '</div>',
-                    className: '', iconAnchor: [0,0]
-                }),
-                zIndexOffset: 1000, interactive: false
-            }).addTo(state.map);
-            lbl._isExportLabel = true;
+function addLabels(ws) {
+    var IC={mood:'\uD83D\uDD0B',thought:'\uD83D\uDCAD',sense:'\uD83D\uDC41\uFE0F'};
+    ws.forEach(function(w) {
+        w.entries.forEach(function(e) {
+            if (!IC[e.type]) return;
+            var txt=(e.text||'').slice(0,30)+(e.text&&e.text.length>30?'\u2026':'');
+            var m=L.marker([e.location.lat,e.location.lng],{
+                icon:L.divIcon({html:'<div style="background:white;border:2px solid '+w.color+';border-radius:6px;padding:2px 6px;font-size:9px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);max-width:130px;overflow:hidden;text-overflow:ellipsis">'+IC[e.type]+' '+txt+'</div>',className:'',iconAnchor:[0,0]}),
+                zIndexOffset:1000,interactive:false
+            }).addTo(S.map);
+            m._exportLabel=true;
         });
     });
 }
-
-function removeAllEntryLabels() {
-    state.map.eachLayer(function(l) { if (l._isExportLabel) state.map.removeLayer(l); });
+function removeLabels() {
+    S.map.eachLayer(function(l){ if(l._exportLabel) S.map.removeLayer(l); });
 }
 
-function takeReflectionScreenshot(walksArr, kartenFolder, isComparison) {
-    var allPoints = [];
-    walksArr.forEach(function(w) { w.route.forEach(function(p) { allPoints.push(p); }); });
-    var p1 = allPoints.length > 1
-        ? new Promise(function(res) {
-            state.map.fitBounds(L.latLngBounds(allPoints), { padding:[60,60], animate:false, maxZoom:17 });
-            state.map.invalidateSize();
-            setTimeout(res, 700);
+function screenshot(ws, folder, isCmp) {
+    var pts=[]; ws.forEach(function(w){w.route.forEach(function(p){pts.push(p);});});
+    var p = pts.length>1
+        ? new Promise(function(r){
+            S.map.fitBounds(L.latLngBounds(pts),{padding:[60,60],animate:false,maxZoom:17});
+            S.map.invalidateSize(); setTimeout(r,700);
           })
         : Promise.resolve();
-
-    return p1.then(function() { return waitForTiles(); })
-    .then(function() { return new Promise(function(r) { setTimeout(r, 400); }); })
-    .then(function() {
-        showAllEntryLabels(walksArr);
-        return new Promise(function(r) { setTimeout(r, 150); });
-    })
-    .then(function() {
-        applyFilterInline();
-        return html2canvas(document.getElementById('map'), {
-            useCORS: true, allowTaint: false, logging: false,
-            scale: Math.max(window.devicePixelRatio * 2, 3),
-            ignoreElements: function(el) { return el.classList.contains('no-print'); },
-            onclone: function(clonedDoc) {
-                var svg = document.querySelector('svg[width="0"]');
-                if (svg) clonedDoc.body.appendChild(svg.cloneNode(true));
-                clonedDoc.querySelectorAll('.rough-path').forEach(function(el) {
-                    el.setAttribute('filter','url(#roughFilter)');
-                });
+    return p.then(waitTiles)
+     .then(function(){return new Promise(function(r){setTimeout(r,400);});})
+     .then(function(){addLabels(ws);return new Promise(function(r){setTimeout(r,150);});})
+     .then(function(){
+        applyF();
+        return html2canvas(document.getElementById('map'),{
+            useCORS:true,allowTaint:false,logging:false,
+            scale:Math.max(window.devicePixelRatio*2,3),
+            ignoreElements:function(el){return el.classList.contains('no-print');},
+            onclone:function(d){
+                var s=document.querySelector('svg[width="0"]');
+                if(s) d.body.appendChild(s.cloneNode(true));
+                d.querySelectorAll('.rough-path').forEach(function(el){el.setAttribute('filter','url(#roughFilter)');});
             }
         });
-    })
-    .then(function(canvas) {
-        removeFilterInline();
-        removeAllEntryLabels();
-        var fname = isComparison
-            ? 'VERGLEICH_' + new Date().toISOString().slice(0,10) + '.png'
-            : 'ROUTE_' + walksArr[0].id + '_' + new Date().toISOString().slice(0,10) + '.png';
-        kartenFolder.file(fname, canvas.toDataURL('image/png').split(',')[1], { base64: true });
-    });
+     })
+     .then(function(c){
+        removeF(); removeLabels();
+        var fn=isCmp?'VERGLEICH_':'ROUTE_'+ws[0].id+'_';
+        folder.file(fn+new Date().toISOString().slice(0,10)+'.png',c.toDataURL('image/png').split(',')[1],{base64:true});
+     });
 }
 
-// ============================================================
-// ZIP EXPORT
-// ============================================================
+// ---- ZIP EXPORT ----
 document.getElementById('exportFull').addEventListener('click', function() {
-    var activeIds = Object.keys(state.activeComparisonLayers);
-    var isCmp = activeIds.length > 0;
-    var walksToExport = isCmp
-        ? activeIds.map(function(id) { return state.walks.find(function(w) { return w.id == id; }); }).filter(Boolean)
-        : [state.current || state.walks[state.walks.length - 1]];
-    if (!walksToExport[0]) { alert('Kein Walk zum Exportieren.'); return; }
+    var aids = Object.keys(S.compareLayers), isCmp = aids.length>0;
+    var ws = isCmp
+        ? aids.map(function(id){return S.walks.find(function(w){return w.id==id;});}).filter(Boolean)
+        : [S.current||S.walks[S.walks.length-1]];
+    if (!ws[0]) { alert('Kein Walk zum Exportieren.'); return; }
 
-    var btn = document.getElementById('exportFull');
-    var origTxt = btn.innerText;
-    btn.disabled = true;
+    var btn=document.getElementById('exportFull'), orig=btn.textContent;
+    btn.disabled=true;
+    var uis=document.querySelectorAll('.top-ui,.side-ui,.bottom-left,.leaflet-control-zoom,.leaflet-control-attribution');
+    uis.forEach(function(el){el.classList.add('no-print');});
 
-    var uiEls = document.querySelectorAll('.top-ui,.side-ui,.bottom-left,.leaflet-control-zoom,.leaflet-control-attribution');
-    uiEls.forEach(function(el) { el.classList.add('no-print'); });
+    var zip=new JSZip(), kf=zip.folder('Karten'), ff=zip.folder('Fotos'), af=zip.folder('Audio');
+    btn.textContent='Karte...';
 
-    var zip = new JSZip();
-    var kartenFolder = zip.folder('Karten');
-    var fotoFolder   = zip.folder('Fotos');
-    var audioFolder  = zip.folder('Audio');
-
-    btn.innerText = 'Karte...';
-
-    takeReflectionScreenshot(walksToExport, kartenFolder, isCmp).then(function() {
-        btn.innerText = 'Protokoll...';
-
-        walksToExport.forEach(function(walk) {
-            var dauerStr = 'unbekannt';
-            if (walk.startTime && walk.entries.length > 0) {
-                var min = Math.round((new Date(walk.entries[walk.entries.length-1].isoDate) - new Date(walk.startTime)) / 60000);
-                dauerStr = min > 0 ? min + ' Minuten' : '< 1 Minute';
+    screenshot(ws,kf,isCmp).then(function(){
+        btn.textContent='Protokoll...';
+        ws.forEach(function(walk){
+            var dur='unbekannt';
+            if (walk.startTime&&walk.entries.length) {
+                var min=Math.round((new Date(walk.entries[walk.entries.length-1].isoDate)-new Date(walk.startTime))/60000);
+                dur=min>0?min+' Minuten':'< 1 Minute';
             }
-
-            var lines = [];
-            lines.push('BEGLEITINSTRUMENT -- WALK PROTOKOLL');
-            lines.push('');
-            lines.push('NAME:       ' + walk.name);
-            lines.push('ID:         ' + walk.id);
-            lines.push('START:      ' + new Date(walk.startTime).toLocaleString('de-DE'));
-            lines.push('DAUER:      ' + dauerStr);
-            lines.push('STRECKE:    ' + GeoUtils.formatDistance(walk.totalDistance || 0));
-            lines.push('GPS-PUNKTE: ' + walk.route.length);
-            lines.push('');
-            lines.push('--- EINTRAEGE ---');
-            lines.push('Stimmungen:        ' + walk.entries.filter(function(e){return e.type==='mood';}).length);
-            lines.push('Gedanken:          ' + walk.entries.filter(function(e){return e.type==='thought';}).length);
-            lines.push('Wahrnehmung:       ' + walk.entries.filter(function(e){return e.type==='sense';}).length);
-            lines.push('Fotos:             ' + walk.entries.filter(function(e){return e.type==='photo';}).length);
-            lines.push('Sounds:            ' + walk.entries.filter(function(e){return e.type==='Sound';}).length);
-            lines.push('Sprachnachrichten: ' + walk.entries.filter(function(e){return e.type==='Sprachnachricht';}).length);
-            lines.push('GESAMT:            ' + walk.entries.length);
-
-            if (walk.reflection) {
-                lines.push('');
-                lines.push('--- REFLEXION ---');
-                lines.push(walk.reflection);
-            }
-
-            lines.push('');
-            lines.push('--- CHRONOLOGIE ---');
-            walk.entries.forEach(function(e, i) {
-                lines.push('');
-                lines.push('[' + String(i+1).padStart(2,'0') + '] ' + e.timestamp + ' | ' + e.type.toUpperCase());
-                lines.push('     ' + e.location.lat.toFixed(6) + ', ' + e.location.lng.toFixed(6));
-                if (e.text) lines.push('     -> ' + e.text);
-                if (e.type === 'photo') lines.push('     -> Foto: /Fotos/Walk_' + walk.id + '_' + e.timestamp.replace(/:/g,'-') + '_' + i + '.jpg');
-                if (e.type === 'Sound' || e.type === 'Sprachnachricht') lines.push('     -> Audio: /Audio/Walk_' + walk.id + '_' + e.type + '_' + e.timestamp.replace(/:/g,'-') + '_' + i + '.webm');
+            var lines=['BEGLEITINSTRUMENT -- WALK PROTOKOLL','',
+                'NAME:    '+walk.name,'ID:      '+walk.id,
+                'START:   '+new Date(walk.startTime).toLocaleString('de-DE'),
+                'DAUER:   '+dur,'STRECKE: '+GEO.fmt(walk.totalDistance||0),
+                'GPS:     '+walk.route.length+' Punkte','',
+                'STIMMUNGEN:        '+walk.entries.filter(function(e){return e.type==='mood';}).length,
+                'GEDANKEN:          '+walk.entries.filter(function(e){return e.type==='thought';}).length,
+                'WAHRNEHMUNG:       '+walk.entries.filter(function(e){return e.type==='sense';}).length,
+                'FOTOS:             '+walk.entries.filter(function(e){return e.type==='photo';}).length,
+                'SOUNDS:            '+walk.entries.filter(function(e){return e.type==='Sound';}).length,
+                'SPRACHNACHRICHTEN: '+walk.entries.filter(function(e){return e.type==='Sprachnachricht';}).length,
+                'GESAMT:            '+walk.entries.length
+            ];
+            if (walk.reflection) { lines.push('','--- REFLEXION ---',walk.reflection); }
+            lines.push('','--- CHRONOLOGIE ---');
+            walk.entries.forEach(function(e,i){
+                lines.push('','['+String(i+1).padStart(2,'0')+'] '+e.timestamp+' | '+e.type.toUpperCase());
+                lines.push('    '+e.location.lat.toFixed(6)+', '+e.location.lng.toFixed(6));
+                if(e.text) lines.push('    -> '+e.text);
+                if(e.type==='photo') lines.push('    -> /Fotos/Walk_'+walk.id+'_'+i+'.jpg');
+                if(e.type==='Sound'||e.type==='Sprachnachricht') lines.push('    -> /Audio/Walk_'+walk.id+'_'+e.type+'_'+i+'.webm');
             });
+            lines.push('','--- GPS ---');
+            walk.route.forEach(function(p,i){ lines.push((i+1)+': '+p[0].toFixed(6)+', '+p[1].toFixed(6)); });
+            zip.file('PROTOKOLL_'+walk.id+'.txt', lines.join('\n'));
+            zip.file('rohdaten_'+walk.id+'.json', JSON.stringify(walk,null,2));
 
-            lines.push('');
-            lines.push('--- GPS-KOORDINATEN ---');
-            walk.route.forEach(function(p, idx) {
-                lines.push((idx+1) + ': ' + p[0].toFixed(6) + ', ' + p[1].toFixed(6));
-            });
-
-            zip.file('PROTOKOLL_' + walk.id + '.txt', lines.join('\n'));
-            zip.file('rohdaten_' + walk.id + '.json', JSON.stringify(walk, null, 2));
-
-            walk.entries.forEach(function(e, i) {
-                if (e.type === 'photo' && e.photo) {
-                    fotoFolder.file('Walk_' + walk.id + '_' + e.timestamp.replace(/:/g,'-') + '_' + i + '.jpg', e.photo.split(',')[1], { base64: true });
-                }
-                if ((e.type === 'Sound' || e.type === 'Sprachnachricht') && e.audioBlobKey) {
-                    var blob = state.sessionAudioBlobs[e.audioBlobKey];
-                    if (blob) audioFolder.file('Walk_' + walk.id + '_' + e.type + '_' + e.timestamp.replace(/:/g,'-') + '_' + i + '.webm', blob);
+            walk.entries.forEach(function(e,i){
+                if(e.type==='photo'&&e.photo)
+                    ff.file('Walk_'+walk.id+'_'+i+'.jpg',e.photo.split(',')[1],{base64:true});
+                if((e.type==='Sound'||e.type==='Sprachnachricht')&&e.audioBlobKey){
+                    var b=S.audioBlobs[e.audioBlobKey];
+                    if(b) af.file('Walk_'+walk.id+'_'+e.type+'_'+i+'.webm',b);
                 }
             });
         });
 
-        var readme = ['BEGLEITINSTRUMENT -- ZIP EXPORT',
-            'Erstellt: ' + new Date().toLocaleString('de-DE'), '',
-            'INHALT:',
-            '  Karten/         -> Reflexions-Screenshot',
-            '  Fotos/          -> Alle aufgenommenen Fotos',
-            '  Audio/          -> Sound & Sprachnachrichten als .webm',
-            '  PROTOKOLL_*.txt -> Vollprotokoll mit Chronologie und GPS',
-            '  rohdaten_*.json -> Rohdaten als JSON', '',
-            'HINWEIS: Audio nur aus der aktuellen Session exportierbar.', '',
-            'WALKS:'];
-        walksToExport.forEach(function(w) {
-            readme.push('  * ' + w.name + ' | ' + GeoUtils.formatDistance(w.totalDistance||0) + ' | ' + w.entries.length + ' Eintraege');
-        });
-        zip.file('README.txt', readme.join('\n'));
+        zip.file('README.txt',['BEGLEITINSTRUMENT ZIP EXPORT',
+            'Erstellt: '+new Date().toLocaleString('de-DE'),'',
+            'Karten/ Fotos/ Audio/ PROTOKOLL_*.txt rohdaten_*.json','',
+            'HINWEIS: Audio nur aus aktueller Session exportierbar.'].join('\n'));
 
-        btn.innerText = 'Packe ZIP...';
-        return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-    })
-    .then(function(content) {
-        var link = document.createElement('a');
-        link.href = URL.createObjectURL(content);
-        var ts = new Date().toISOString().slice(0,10);
-        link.download = isCmp ? 'Vergleich_' + ts + '.zip' : 'Walk_' + walksToExport[0].id + '_' + ts + '.zip';
-        link.click();
-    })
-    .catch(function(err) {
-        console.error(err);
-        alert('Export fehlgeschlagen.');
-    })
-    .finally(function() {
-        removeFilterInline();
-        removeAllEntryLabels();
-        uiEls.forEach(function(el) { el.classList.remove('no-print'); });
-        btn.innerText = origTxt;
-        btn.disabled = false;
+        btn.textContent='ZIP...';
+        return zip.generateAsync({type:'blob',compression:'DEFLATE'});
+    }).then(function(blob){
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=(isCmp?'Vergleich_':'Walk_'+ws[0].id+'_')+new Date().toISOString().slice(0,10)+'.zip';
+        a.click();
+    }).catch(function(err){ console.error(err); alert('Export fehlgeschlagen.'); })
+    .finally(function(){
+        removeF(); removeLabels();
+        uis.forEach(function(el){el.classList.remove('no-print');});
+        btn.textContent=orig; btn.disabled=false;
     });
 });
 
-// Start
+// ---- START ----
 initMap();
 
-})();
+}); // Ende DOMContentLoaded
 </script>
 </body>
 </html>
