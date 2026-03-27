@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-    <title>Begleitinstrument PRO — Final FIX</title>
+    <title>Begleitinstrument PRO</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -35,19 +35,34 @@
             display: none;
         }
         .no-print { display: none !important; }
+        .rough-path { stroke-linecap: round; }
 
-        /* Rough-Filter: gilt für Live-Segmente UND Archiv-Vergleichslinien */
-        .rough-path {
-            filter: url(#roughFilter);
-            stroke-linecap: round;
+        /* Layer-Menü */
+        #layerMenu {
+            display: none;
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 1px solid #ddd;
+            padding: 10px;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 210px;
         }
+        #layerMenu.open { display: flex; }
+        .layer-option { text-align: left; font-size: 11px !important; padding: 8px 12px !important; }
+        .layer-option.active { background: #dbeafe !important; color: #1d4ed8 !important; }
     </style>
 </head>
 <body>
 
-<!-- SVG-Filter für den organischen Rough-Look -->
 <svg width="0" height="0" style="position:absolute">
-  <filter id="roughFilter">
+  <filter id="roughFilter" x="-20%" y="-20%" width="140%" height="140%">
     <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise"/>
     <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" />
   </filter>
@@ -55,13 +70,26 @@
 
 <div id="map"></div>
 
+<!-- TOP UI -->
 <div class="top-ui">
     <button id="startWalk" class="btn bg-blue-600 text-white">START</button>
     <button id="stopWalk" class="btn bg-red-600 text-white">STOP/SAVE</button>
     <button id="exportFull" class="btn bg-black text-white">ZIP EXPORT</button>
+    <button id="layerBtn" class="btn bg-gray-100 text-gray-800">🗺️ LAYER</button>
     <span id="liveDistDisplay">📍 0 m</span>
 </div>
 
+<!-- LAYER MENÜ -->
+<div id="layerMenu">
+    <p style="font-size:10px; font-weight:bold; color:#888; text-transform:uppercase; margin-bottom:2px; padding:0 4px;">Kartenansicht</p>
+    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="osm">🗺️ Standard</button>
+    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="satellite">🛰️ Satellit</button>
+    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="topo">🏔️ Topografie</button>
+    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="bw">⬜ Graustufen</button>
+    <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="dark">🌑 Dunkel</button>
+</div>
+
+<!-- SIDE UI -->
 <div class="side-ui">
     <div class="panel max-h-[250px] overflow-y-auto">
         <p class="font-bold text-[10px] uppercase text-gray-500 mb-2 border-b">Vergleichs-Archiv</p>
@@ -74,6 +102,7 @@
     </div>
 </div>
 
+<!-- BOTTOM LEFT FABS -->
 <div class="bottom-left">
     <button id="photoBtn" class="fab bg-white">📸</button>
     <button id="audioToggle" class="fab bg-orange-400 text-white">▶️</button>
@@ -85,12 +114,10 @@
 
 <script>
 // ============================================================
-// GeoUtils — Haversine-Distanzberechnung
+// GeoUtils
 // ============================================================
 class GeoUtils {
-    static toRad(angle) {
-        return angle * Math.PI / 180;
-    }
+    static toRad(angle) { return angle * Math.PI / 180; }
 
     static haversineDistance(lat1, lon1, lat2, lon2) {
         const R = 6371;
@@ -101,46 +128,115 @@ class GeoUtils {
             Math.cos(GeoUtils.toRad(lat1)) *
             Math.cos(GeoUtils.toRad(lat2)) *
             Math.sin(dLon / 2) ** 2;
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // unter 1 km → Meter, ab 1 km → Kilometer
     static formatDistance(km) {
         if (km < 1) return `${Math.round(km * 1000)} m`;
         return `${km.toFixed(2)} km`;
     }
 }
 
-// --- KONFIGURATION ---
-const walkColors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6'];
+// ============================================================
+// KONFIGURATION
+// ============================================================
+const walkColors = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#46f0f0','#f032e6'];
 
-// --- STATE MANAGER ---
+const tileLayers = {
+    osm: {
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '© OpenStreetMap'
+    },
+    satellite: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri World Imagery'
+    },
+    topo: {
+        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        attribution: '© OpenTopoMap'
+    },
+    bw: {
+        url: 'https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png',
+        attribution: '© OpenStreetMap'
+    },
+    dark: {
+        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        attribution: '© CartoDB'
+    }
+};
+
+// ============================================================
+// STATE
+// ============================================================
 const state = {
     walks: JSON.parse(localStorage.getItem('psychogeo_walks') || '[]'),
     current: null,
     map: null,
     liveMarker: null,
     activeComparisonLayers: {},
+    currentTileLayer: null,
     audioRecorder: null,
     audioChunks: [],
     isRecording: false
 };
 
-// --- INITIALISIERUNG ---
+// ============================================================
+// LAYER SWITCHER
+// ============================================================
+function switchLayer(key) {
+    const config = tileLayers[key];
+    if (!config) return;
+
+    if (state.currentTileLayer) state.map.removeLayer(state.currentTileLayer);
+
+    state.currentTileLayer = L.tileLayer(config.url, {
+        crossOrigin: true,
+        attribution: config.attribution
+    }).addTo(state.map);
+
+    state.currentTileLayer.bringToBack();
+
+    // Aktiven Button hervorheben
+    document.querySelectorAll('.layer-option').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.layer === key);
+    });
+
+    localStorage.setItem('psychogeo_layer', key);
+    document.getElementById('layerMenu').classList.remove('open');
+}
+
+document.getElementById('layerBtn').onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById('layerMenu').classList.toggle('open');
+};
+
+document.querySelectorAll('.layer-option').forEach(btn => {
+    btn.onclick = () => switchLayer(btn.dataset.layer);
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#layerMenu') && e.target.id !== 'layerBtn') {
+        document.getElementById('layerMenu').classList.remove('open');
+    }
+});
+
+// ============================================================
+// INITIALISIERUNG
+// ============================================================
 function initMap() {
     state.map = L.map('map', { zoomControl: false, preferCanvas: false }).setView([47.23, 9.61], 15);
-    // preferCanvas: false ist wichtig — nur SVG-Renderer unterstützt className + CSS-Filter
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        crossOrigin: true,
-        attribution: '© OpenStreetMap'
-    }).addTo(state.map);
+
+    // Gespeicherten oder Standard-Layer laden
+    const savedLayer = localStorage.getItem('psychogeo_layer') || 'osm';
+    switchLayer(savedLayer);
 
     navigator.geolocation.watchPosition(onLocationUpdate, onLocationError, { enableHighAccuracy: true });
     updateArchiveUI();
 }
 
-// --- GEOLOCATION HANDLER ---
+// ============================================================
+// GEOLOCATION
+// ============================================================
 function onLocationUpdate(pos) {
     const { latitude, longitude } = pos.coords;
     const latlng = [latitude, longitude];
@@ -160,21 +256,15 @@ function onLocationUpdate(pos) {
         const times = state.current.routeTimes;
 
         if (route.length > 0) {
-            const prev = route[route.length - 1];
-            const prevTime = times[times.length - 1];
-
-            // Distanz akkumulieren
+            const prev      = route[route.length - 1];
+            const prevTime  = times[times.length - 1];
             const segmentKm = GeoUtils.haversineDistance(prev[0], prev[1], latitude, longitude);
             state.current.totalDistance += segmentKm;
 
-            // Geschwindigkeit berechnen (km/h)
-            const dtHours = (now - prevTime) / 3600000;
+            const dtHours  = (now - prevTime) / 3600000;
             const speedKmh = dtHours > 0 ? segmentKm / dtHours : 0;
-
-            // Segment mit Rough-Look und Geschwindigkeits-Styling zeichnen
             drawSpeedSegment([prev, latlng], speedKmh);
 
-            // Live-Distanzanzeige aktualisieren
             document.getElementById('liveDistDisplay').textContent =
                 `📍 ${GeoUtils.formatDistance(state.current.totalDistance)}`;
         }
@@ -184,49 +274,37 @@ function onLocationUpdate(pos) {
     }
 }
 
-function onLocationError(err) {
-    console.warn("GEOLOCATION ERROR: " + err.message);
-}
-
-// Diese Funktion bleibt leer — Segmente werden direkt in drawSpeedSegment gezeichnet
+function onLocationError(err) { console.warn("GPS: " + err.message); }
 function updateLiveRouteDisplay() {}
 
 // ============================================================
-// drawSpeedSegment — Herzstück der Visualisierung
-// Skizzen-Logik: schnell = dünn & transparent, langsam = dick & opak
-// Alle Segmente erhalten den Rough-Filter via className: 'rough-path'
+// SPEED SEGMENT — Rough + Geschwindigkeit
 // ============================================================
 function drawSpeedSegment(points, speedKmh) {
-    // Typischer Spaziergang: 0–6 km/h
-    // Erhöhe MAX_SPEED für schwächeren Kontrast, senke für stärkeren
     const MAX_SPEED = 6;
-    const ratio = Math.min(speedKmh / MAX_SPEED, 1); // 0 = langsam, 1 = schnell
-
-    // Langsam → dick (14px), schnell → hauchdünn (1px)
-    const weight = Math.round(14 - ratio * 13);
-
-    // Langsam → fast opak (0.9), schnell → kaum sichtbar (0.06)
+    const ratio   = Math.min(speedKmh / MAX_SPEED, 1);
+    const weight  = Math.round(14 - ratio * 13);
     const opacity = 0.9 - ratio * 0.84;
-
-    const color = state.current ? state.current.color : '#2563eb';
+    const color   = state.current ? state.current.color : '#2563eb';
 
     const seg = L.polyline(points, {
-        color,
-        weight,
-        opacity,
-        lineCap: 'round',
-        lineJoin: 'round',
-        className: 'rough-path'  // ✅ Rough-Filter live aktiv
+        color, weight, opacity,
+        lineCap: 'round', lineJoin: 'round',
+        className: 'rough-path'
     }).addTo(state.map);
 
-    // Segment-Referenz für Cleanup speichern
+    const el = seg.getElement();
+    if (el) el.setAttribute('filter', 'url(#roughFilter)');
+
     if (state.current) {
         if (!state.current.segments) state.current.segments = [];
         state.current.segments.push(seg);
     }
 }
 
-// --- WALK STEUERUNG ---
+// ============================================================
+// WALK STEUERUNG
+// ============================================================
 document.getElementById('startWalk').onclick = () => {
     if (state.current) return alert("Walk läuft bereits!");
     clearAllComparisonLayers();
@@ -237,10 +315,10 @@ document.getElementById('startWalk').onclick = () => {
         startTime: new Date().toISOString(),
         name: new Date().toLocaleString('de-DE'),
         route: [],
-        routeTimes: [],   // ✅ Zeitstempel parallel zur Route
-        segments: [],     // ✅ Live-Segment-Referenzen
+        routeTimes: [],
+        segments: [],
         entries: [],
-        color: color,
+        color,
         reflection: "",
         totalDistance: 0
     };
@@ -248,8 +326,7 @@ document.getElementById('startWalk').onclick = () => {
     const display = document.getElementById('liveDistDisplay');
     display.style.display = 'inline-block';
     display.textContent = '📍 0 m';
-
-    alert("Aufzeichnung gestartet! Daten werden erhoben.");
+    alert("Aufzeichnung gestartet!");
 };
 
 document.getElementById('stopWalk').onclick = () => {
@@ -259,8 +336,6 @@ document.getElementById('stopWalk').onclick = () => {
     }
 
     state.current.totalDistance = parseFloat(state.current.totalDistance.toFixed(4));
-
-    // Segment-Layer-Objekte können nicht in LocalStorage → nur IDs merken
     state.current.segments = [];
 
     state.walks.push(state.current);
@@ -268,13 +343,14 @@ document.getElementById('stopWalk').onclick = () => {
     updateArchiveUI();
 
     document.getElementById('liveDistDisplay').style.display = 'none';
-
     const savedDist = state.current.totalDistance;
     state.current = null;
-    alert(`Walk gespeichert. Zurückgelegte Strecke: ${GeoUtils.formatDistance(savedDist)}`);
+    alert(`Walk gespeichert. Strecke: ${GeoUtils.formatDistance(savedDist)}`);
 };
 
-// --- DATENERHEBUNG ---
+// ============================================================
+// DATENERHEBUNG
+// ============================================================
 function addEntry(type, data = {}) {
     if (!state.current) return alert("Bitte erst START drücken!");
     if (!state.liveMarker) return alert("Warte auf GPS Signal...");
@@ -292,7 +368,7 @@ function addEntry(type, data = {}) {
         drawTempMarker(entry);
     };
 
-    if (['mood', 'thought', 'sense'].includes(type)) {
+    if (['mood','thought','sense'].includes(type)) {
         const prompts = { mood: "Stimmung beschreiben:", thought: "Gedanke?", sense: "Wahrnehmung?" };
         const text = prompt(prompts[type]);
         if (text === null) return;
@@ -306,7 +382,7 @@ let tempLayerGroup = L.layerGroup();
 function drawTempMarker(e) {
     if (!tempLayerGroup.getBounds().isValid()) tempLayerGroup.addTo(state.map);
     const loc = [e.location.lat, e.location.lng];
-    if (['mood', 'thought', 'sense'].includes(e.type)) {
+    if (['mood','thought','sense'].includes(e.type)) {
         L.circleMarker(loc, {
             radius: 6, fillColor: '#2563eb', color: '#fff', weight: 1, fillOpacity: 0.8
         }).addTo(tempLayerGroup);
@@ -315,14 +391,16 @@ function drawTempMarker(e) {
     }
 }
 
-// --- ANALYSE & VERGLEICH ---
+// ============================================================
+// VERGLEICH & ARCHIV
+// ============================================================
 function toggleWalkComparison(id) {
     const walkId = parseInt(id);
     const walk = state.walks.find(w => w.id === walkId);
     if (!walk) return;
 
     if (state.current) {
-        alert("Bitte beende erst die aktuelle Aufnahme, um Vergleiche zu sehen.");
+        alert("Bitte beende erst die aktuelle Aufnahme.");
         updateArchiveUI();
         return;
     }
@@ -334,29 +412,28 @@ function toggleWalkComparison(id) {
     } else {
         const group = L.layerGroup();
 
-        // Archiv-Route ebenfalls mit Rough-Filter
-        L.polyline(walk.route, {
-            color: walk.color,
-            weight: 5,
-            opacity: 0.75,
-            lineCap: 'round',
-            lineJoin: 'round',
+        const polyline = L.polyline(walk.route, {
+            color: walk.color, weight: 5, opacity: 0.75,
+            lineCap: 'round', lineJoin: 'round',
             className: 'rough-path'
         }).addTo(group);
 
+        const el = polyline.getElement();
+        if (el) el.setAttribute('filter', 'url(#roughFilter)');
+
         walk.entries.forEach(e => {
             const loc = [e.location.lat, e.location.lng];
-            if (['mood', 'thought', 'sense'].includes(e.type)) {
+            if (['mood','thought','sense'].includes(e.type)) {
                 L.circleMarker(loc, {
                     radius: 8, fillColor: walk.color, color: '#fff', weight: 2, fillOpacity: 1
                 }).addTo(group).bindPopup(`<b>${e.type.toUpperCase()}</b><br>${e.text}`);
             } else if (e.type === 'photo') {
-                const icon = L.divIcon({ html: '📸', className: 'text-lg' });
-                L.marker(loc, { icon }).addTo(group).bindPopup(`<img src="${e.photo}" width="150">`);
-            } else if (e.type === 'Sound' || e.type === 'Sprachnachricht') {
+                L.marker(loc, { icon: L.divIcon({ html: '📸', className: 'text-lg' }) })
+                    .addTo(group).bindPopup(`<img src="${e.photo}" width="150">`);
+            } else if (['Sound','Sprachnachricht'].includes(e.type)) {
                 const iconTxt = e.type === 'Sound' ? '🔊' : '💬';
-                const icon = L.divIcon({ html: iconTxt, className: 'text-lg' });
-                L.marker(loc, { icon }).addTo(group).bindPopup(`<audio controls src="${e.audioUrl}"></audio>`);
+                L.marker(loc, { icon: L.divIcon({ html: iconTxt, className: 'text-lg' }) })
+                    .addTo(group).bindPopup(`<audio controls src="${e.audioUrl}"></audio>`);
             }
         });
 
@@ -367,20 +444,21 @@ function toggleWalkComparison(id) {
 }
 
 function clearAllComparisonLayers() {
-    Object.values(state.activeComparisonLayers).forEach(layer => state.map.removeLayer(layer));
+    Object.values(state.activeComparisonLayers).forEach(l => state.map.removeLayer(l));
     state.activeComparisonLayers = {};
     hideReflectionPanel();
     updateArchiveUI();
 }
 
-// --- REFLEXIONS LOGIK ---
+// ============================================================
+// REFLEXION
+// ============================================================
 function showReflectionPanel(walk) {
-    const panel = document.getElementById('reflectionPanel');
-    const textArea = document.getElementById('reflectionText');
+    document.getElementById('reflectionPanel').style.display = 'block';
     document.getElementById('activeWalkName').innerText = walk.name;
-    panel.style.display = 'block';
-    textArea.value = walk.reflection || "";
-    textArea.dataset.activeWalkId = walk.id;
+    const ta = document.getElementById('reflectionText');
+    ta.value = walk.reflection || "";
+    ta.dataset.activeWalkId = walk.id;
 }
 
 function hideReflectionPanel() {
@@ -388,31 +466,28 @@ function hideReflectionPanel() {
 }
 
 document.getElementById('saveReflection').onclick = () => {
-    const textArea = document.getElementById('reflectionText');
-    const walkId = parseInt(textArea.dataset.activeWalkId);
+    const ta = document.getElementById('reflectionText');
+    const walkId = parseInt(ta.dataset.activeWalkId);
     if (!walkId) return;
     const walk = state.walks.find(w => w.id === walkId);
-    if (walk) {
-        walk.reflection = textArea.value;
-        saveToLocalStorage();
-        alert("Reflexion gespeichert.");
-    }
+    if (walk) { walk.reflection = ta.value; saveToLocalStorage(); alert("Reflexion gespeichert."); }
 };
 
-// --- STORAGE ---
+// ============================================================
+// STORAGE
+// ============================================================
 function saveToLocalStorage() {
     const cleanWalks = state.walks.map(w => ({
         ...w,
-        segments: [], // Layer-Objekte nie in LocalStorage
-        entries: w.entries.map(e => {
-            const { audioBlob, ...cleanEntry } = e;
-            return cleanEntry;
-        })
+        segments: [],
+        entries: w.entries.map(e => { const { audioBlob, ...clean } = e; return clean; })
     }));
     localStorage.setItem('psychogeo_walks', JSON.stringify(cleanWalks));
 }
 
-// --- UI UPDATES ---
+// ============================================================
+// UI
+// ============================================================
 function updateArchiveUI() {
     const list = document.getElementById('walkList');
     list.innerHTML = "";
@@ -421,10 +496,8 @@ function updateArchiveUI() {
         return;
     }
     state.walks.forEach(w => {
-        const isActive = !!state.activeComparisonLayers[w.id];
-        const distLabel = (w.totalDistance != null && w.totalDistance > 0)
-            ? GeoUtils.formatDistance(w.totalDistance)
-            : '— m';
+        const isActive  = !!state.activeComparisonLayers[w.id];
+        const distLabel = w.totalDistance > 0 ? GeoUtils.formatDistance(w.totalDistance) : '— m';
         const div = document.createElement('div');
         div.className = "walk-item";
         div.innerHTML = `
@@ -437,10 +510,12 @@ function updateArchiveUI() {
     });
 }
 
-// --- EVENT LISTENER ---
-document.getElementById('moodBtn').onclick = () => addEntry('mood');
+// ============================================================
+// EVENTS
+// ============================================================
+document.getElementById('moodBtn').onclick    = () => addEntry('mood');
 document.getElementById('thoughtBtn').onclick = () => addEntry('thought');
-document.getElementById('senseBtn').onclick = () => addEntry('sense');
+document.getElementById('senseBtn').onclick   = () => addEntry('sense');
 
 async function handleRecording(buttonId, type) {
     if (!state.current) return alert("Bitte erst START drücken!");
@@ -448,8 +523,8 @@ async function handleRecording(buttonId, type) {
     if (!state.isRecording) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            state.audioRecorder = new MediaRecorder(stream);
-            state.audioChunks = [];
+            state.audioRecorder  = new MediaRecorder(stream);
+            state.audioChunks    = [];
             state.audioRecorder.ondataavailable = e => state.audioChunks.push(e.data);
             state.audioRecorder.onstop = () => {
                 const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
@@ -457,17 +532,16 @@ async function handleRecording(buttonId, type) {
             };
             state.audioRecorder.start();
             state.isRecording = true;
-            btn.innerText = "⏹️";
-            btn.classList.replace('bg-orange-400', 'bg-red-600');
+            btn.innerText = "⏹️"; btn.classList.replace('bg-orange-400', 'bg-red-600');
         } catch (err) { alert("Mikro-Zugriff verweigert."); }
     } else {
         state.audioRecorder.stop();
         state.isRecording = false;
-        btn.innerText = (type === 'Sound') ? "▶️" : "💬";
+        btn.innerText = type === 'Sound' ? "▶️" : "💬";
         btn.classList.replace('bg-red-600', 'bg-orange-400');
     }
 }
-document.getElementById('audioToggle').onclick = () => handleRecording('audioToggle', 'Sound');
+document.getElementById('audioToggle').onclick   = () => handleRecording('audioToggle', 'Sound');
 document.getElementById('messageToggle').onclick = () => handleRecording('messageToggle', 'Sprachnachricht');
 
 document.getElementById('photoBtn').onclick = () => {
@@ -482,80 +556,240 @@ document.getElementById('photoBtn').onclick = () => {
     input.click();
 };
 
-// --- ZIP EXPORT ---
-document.getElementById('exportFull').onclick = async () => {
-    const numActiveComparisons = Object.keys(state.activeComparisonLayers).length;
-    let walkToExport, isComparisonExport = false;
+// ============================================================
+// SCREENSHOT ENGINE
+// ============================================================
+async function waitForTiles() {
+    return new Promise(resolve => {
+        const check = () => {
+            const tiles = document.querySelectorAll('.leaflet-tile');
+            const allLoaded = Array.from(tiles).every(t => t.complete && t.naturalWidth > 0);
+            if (allLoaded && tiles.length > 0) resolve();
+            else setTimeout(check, 200);
+        };
+        check();
+    });
+}
 
-    if (numActiveComparisons > 0) {
-        isComparisonExport = true;
-        const firstId = Object.keys(state.activeComparisonLayers)[0];
-        walkToExport = state.walks.find(w => w.id == firstId);
-    } else {
-        walkToExport = state.current || state.walks[state.walks.length - 1];
+function applyFilterInline() {
+    document.querySelectorAll('.rough-path').forEach(el => {
+        el.setAttribute('filter', 'url(#roughFilter)');
+    });
+}
+
+function removeFilterInline() {
+    document.querySelectorAll('.rough-path').forEach(el => {
+        el.removeAttribute('filter');
+    });
+}
+
+function showAllEntryLabels(walksArr) {
+    walksArr.forEach(walk => {
+        walk.entries.forEach(e => {
+            if (!['mood','thought','sense'].includes(e.type)) return;
+            const icon = { mood: '🔋', thought: '💭', sense: '👁️' }[e.type];
+            const label = L.marker([e.location.lat, e.location.lng], {
+                icon: L.divIcon({
+                    html: `<div style="
+                        background:white;
+                        border:2px solid ${walk.color};
+                        border-radius:6px;
+                        padding:2px 6px;
+                        font-size:9px;
+                        font-family:sans-serif;
+                        white-space:nowrap;
+                        box-shadow:0 1px 4px rgba(0,0,0,0.2);
+                        max-width:130px;
+                        overflow:hidden;
+                        text-overflow:ellipsis;
+                    ">${icon} ${(e.text||'').slice(0,30)}${e.text&&e.text.length>30?'…':''}</div>`,
+                    className: '',
+                    iconAnchor: [0, 0]
+                }),
+                zIndexOffset: 1000,
+                interactive: false
+            }).addTo(state.map);
+            label._isExportLabel = true;
+        });
+    });
+}
+
+function removeAllEntryLabels() {
+    state.map.eachLayer(layer => {
+        if (layer._isExportLabel) state.map.removeLayer(layer);
+    });
+}
+
+async function takeReflectionScreenshot(walksArr, kartenFolder, isComparison) {
+    const allPoints = walksArr.flatMap(w => w.route);
+    if (allPoints.length > 1) {
+        state.map.fitBounds(L.latLngBounds(allPoints), {
+            padding: [60, 60], animate: false, maxZoom: 17
+        });
+        state.map.invalidateSize();
+        await new Promise(r => setTimeout(r, 700));
     }
 
-    if (!walkToExport) return alert("Kein Walk zum Exportieren da.");
+    await waitForTiles();
+    await new Promise(r => setTimeout(r, 400));
+
+    showAllEntryLabels(walksArr);
+    await new Promise(r => setTimeout(r, 150));
+
+    applyFilterInline();
+
+    const canvas = await html2canvas(document.getElementById('map'), {
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        scale: Math.max(window.devicePixelRatio * 2, 3),
+        ignoreElements: (el) => el.classList.contains('no-print'),
+        onclone: (clonedDoc) => {
+            const svg = document.querySelector('svg[width="0"]');
+            if (svg) clonedDoc.body.appendChild(svg.cloneNode(true));
+            clonedDoc.querySelectorAll('.rough-path').forEach(el => {
+                el.setAttribute('filter', 'url(#roughFilter)');
+            });
+        }
+    });
+
+    removeFilterInline();
+    removeAllEntryLabels();
+
+    const filename = isComparison
+        ? `VERGLEICH_${new Date().toISOString().slice(0,10)}.png`
+        : `ROUTE_${walksArr[0].id}_${new Date().toISOString().slice(0,10)}.png`;
+    kartenFolder.file(filename, canvas.toDataURL("image/png").split(',')[1], { base64: true });
+}
+
+// ============================================================
+// ZIP EXPORT
+// ============================================================
+document.getElementById('exportFull').onclick = async () => {
+    const activeIds = Object.keys(state.activeComparisonLayers);
+    const isComparisonExport = activeIds.length > 0;
+
+    const walksToExport = isComparisonExport
+        ? activeIds.map(id => state.walks.find(w => w.id == id)).filter(Boolean)
+        : [state.current || state.walks[state.walks.length - 1]];
+
+    if (!walksToExport[0]) return alert("Kein Walk zum Exportieren.");
 
     const btn = document.getElementById('exportFull');
     const originalText = btn.innerText;
-    btn.innerText = "⏳..."; btn.disabled = true;
+    btn.disabled = true;
 
     const uiElements = document.querySelectorAll('.top-ui, .side-ui, .bottom-left, .leaflet-control-zoom, .leaflet-control-attribution');
     uiElements.forEach(el => el.classList.add('no-print'));
 
     try {
-        const zip = new JSZip();
-        const photoFolder = zip.folder("Fotos");
+        const zip          = new JSZip();
+        const kartenFolder = zip.folder("Karten");
+        const fotoFolder   = zip.folder("Fotos");
         zip.folder("Audio");
 
-        await new Promise(r => setTimeout(r, 500));
-        const canvas = await html2canvas(document.getElementById('map'), {
-            useCORS: true,
-            allowTaint: false,
-            ignoreElements: (el) => el.classList.contains('no-print'),
-            logging: false
-        });
+        btn.innerText = "⏳ Karte...";
+        await takeReflectionScreenshot(walksToExport, kartenFolder, isComparisonExport);
 
-        const imgName = isComparisonExport
-            ? "VERGLEICHS_ANSICHT.png"
-            : `KARTEN_ANSICHT_${walkToExport.id}.png`;
-        zip.file(imgName, canvas.toDataURL("image/png").split(',')[1], { base64: true });
-
-        const distStr = (walkToExport.totalDistance != null && walkToExport.totalDistance > 0)
-            ? GeoUtils.formatDistance(walkToExport.totalDistance)
-            : 'nicht verfügbar';
-
-        let protokollText = `BEGLEITINSTRUMENT PROTOKOLL - ${walkToExport.name}\n`;
-        protokollText += `ID: ${walkToExport.id}\n`;
-        protokollText += `ZURÜCKGELEGTE STRECKE: ${distStr}\n`;
-        protokollText += `------------------------------------------\n\n`;
-        protokollText += `REFLEXION:\n${walkToExport.reflection || "(Keine Reflexion gespeichert)"}\n\n`;
-        protokollText += `EINTRÄGE:\n`;
-
-        walkToExport.entries.forEach((e, i) => {
-            const timeClean = e.timestamp.replace(/:/g, '-');
-            protokollText += `[${e.timestamp}] ${e.type.toUpperCase()}: ${e.text || ""}\n`;
-            if (e.type === 'photo' && e.photo) {
-                photoFolder.file(`FOTO_${timeClean}_${i}.jpg`, e.photo.split(',')[1], { base64: true });
+        btn.innerText = "⏳ Protokoll...";
+        walksToExport.forEach(walk => {
+            let dauerStr = 'unbekannt';
+            if (walk.startTime && walk.entries.length > 0) {
+                const start = new Date(walk.startTime);
+                const last  = new Date(walk.entries[walk.entries.length - 1].isoDate);
+                const min   = Math.round((last - start) / 60000);
+                dauerStr    = min > 0 ? `${min} Minuten` : '< 1 Minute';
             }
+
+            const stimmungen  = walk.entries.filter(e => e.type === 'mood');
+            const gedanken    = walk.entries.filter(e => e.type === 'thought');
+            const wahrnehmung = walk.entries.filter(e => e.type === 'sense');
+            const fotos       = walk.entries.filter(e => e.type === 'photo');
+            const audio       = walk.entries.filter(e => ['Sound','Sprachnachricht'].includes(e.type));
+
+            let txt = '';
+            txt += `╔══════════════════════════════════════════╗\n`;
+            txt += `  BEGLEITINSTRUMENT — WALK PROTOKOLL\n`;
+            txt += `╚══════════════════════════════════════════╝\n\n`;
+            txt += `NAME:       ${walk.name}\n`;
+            txt += `ID:         ${walk.id}\n`;
+            txt += `START:      ${new Date(walk.startTime).toLocaleString('de-DE')}\n`;
+            txt += `DAUER:      ${dauerStr}\n`;
+            txt += `STRECKE:    ${GeoUtils.formatDistance(walk.totalDistance || 0)}\n`;
+            txt += `GPS-PUNKTE: ${walk.route.length}\n`;
+            txt += `\n──────────── EINTRÄGE ÜBERSICHT ──────────\n`;
+            txt += `🔋 Stimmungen:   ${stimmungen.length}\n`;
+            txt += `💭 Gedanken:     ${gedanken.length}\n`;
+            txt += `👁️  Wahrnehmung:  ${wahrnehmung.length}\n`;
+            txt += `📸 Fotos:        ${fotos.length}\n`;
+            txt += `🔊 Audio:        ${audio.length}\n`;
+            txt += `   GESAMT:       ${walk.entries.length}\n`;
+
+            if (walk.reflection) {
+                txt += `\n──────────────── REFLEXION ───────────────\n`;
+                txt += `${walk.reflection}\n`;
+            }
+
+            txt += `\n──────────────── CHRONOLOGIE ─────────────\n`;
+            walk.entries.forEach((e, i) => {
+                txt += `\n[${String(i+1).padStart(2,'0')}] ${e.timestamp} | ${e.type.toUpperCase()}\n`;
+                txt += `     📍 ${e.location.lat.toFixed(6)}, ${e.location.lng.toFixed(6)}\n`;
+                if (e.text) txt += `     → ${e.text}\n`;
+                if (e.type === 'photo') txt += `     → Foto gespeichert in /Fotos\n`;
+                if (['Sound','Sprachnachricht'].includes(e.type)) txt += `     → Audio (nur aktive Session)\n`;
+            });
+
+            txt += `\n══════════════════════════════════════════\n`;
+            txt += `  GPS-KOORDINATEN (Route)\n`;
+            txt += `══════════════════════════════════════════\n`;
+            walk.route.forEach((p, i) => {
+                txt += `${i+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}\n`;
+            });
+
+            zip.file(`PROTOKOLL_${walk.id}.txt`, txt);
+            zip.file(`rohdaten_${walk.id}.json`, JSON.stringify(walk, null, 2));
+
+            fotos.forEach((e, i) => {
+                if (e.photo) {
+                    const t = e.timestamp.replace(/:/g, '-');
+                    fotoFolder.file(`Walk_${walk.id}_${t}_${i}.jpg`, e.photo.split(',')[1], { base64: true });
+                }
+            });
         });
 
-        zip.file("PROTOKOLL.txt", protokollText);
-        zip.file("rohdaten.json", JSON.stringify(walkToExport, null, 2));
+        let readme = `BEGLEITINSTRUMENT — ZIP EXPORT\n`;
+        readme += `Erstellt: ${new Date().toLocaleString('de-DE')}\n\n`;
+        readme += `INHALT:\n`;
+        readme += `  Karten/         → Reflexions-Screenshot (Rough-Linien + Labels, 3x Auflösung)\n`;
+        readme += `  Fotos/          → Alle aufgenommenen Fotos\n`;
+        readme += `  Audio/          → Sprachaufnahmen (nur aktive Session)\n`;
+        readme += `  PROTOKOLL_*.txt → Vollprotokoll mit Chronologie und GPS\n`;
+        readme += `  rohdaten_*.json → Rohdaten als JSON\n\n`;
+        readme += `WALKS:\n`;
+        walksToExport.forEach(w => {
+            readme += `  • ${w.name} | ${GeoUtils.formatDistance(w.totalDistance||0)} | ${w.entries.length} Einträge\n`;
+        });
+        zip.file("README.txt", readme);
 
-        const content = await zip.generateAsync({ type: "blob" });
+        btn.innerText = "⏳ Packe ZIP...";
+        const content = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);
-        link.download = isComparisonExport ? `Analyse_Export.zip` : `Walk_Export_${walkToExport.id}.zip`;
+        const ts = new Date().toISOString().slice(0,10);
+        link.download = isComparisonExport
+            ? `Vergleich_${ts}.zip`
+            : `Walk_${walksToExport[0].id}_${ts}.zip`;
         link.click();
 
     } catch (err) {
         console.error(err);
-        alert("Export fehlgeschlagen. Siehe Konsole.");
+        alert("Export fehlgeschlagen. Konsole prüfen.");
     } finally {
+        removeFilterInline();
+        removeAllEntryLabels();
         uiElements.forEach(el => el.classList.remove('no-print'));
-        btn.innerText = originalText; btn.disabled = false;
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 };
 
