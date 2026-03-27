@@ -15,9 +15,16 @@
         html, body, #map { height: 100%; margin: 0; background: #fff; overflow: hidden; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; z-index: 1; }
         .top-ui, .side-ui, .bottom-left { z-index: 1000; position: fixed; }
-        .top-ui { top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; }
+        .top-ui {
+            top: 12px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center;
+        }
         .side-ui { top: 70px; right: 12px; width: 250px; display: flex; flex-direction: column; gap: 10px; }
-        .bottom-left { bottom: 20px; left: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .bottom-left {
+            bottom: 20px; left: 12px;
+            display: grid; grid-template-columns: 55px 55px;
+            gap: 10px; z-index: 1000; position: fixed;
+        }
         .panel { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #ddd; }
         .btn { padding: 10px 14px; border-radius: 10px; font-weight: bold; font-size: 10px; cursor: pointer; text-transform: uppercase; border: none; }
         .fab { width: 55px; height: 55px; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-size: 22px; border: none; box-shadow: 0 6px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 1001; }
@@ -26,33 +33,16 @@
         .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #ccc; }
         .dist-badge { font-size: 9px; color: #888; white-space: nowrap; margin-left: auto; }
         #liveDistDisplay {
-            background: rgba(255,255,255,0.92);
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: bold;
-            color: #2563eb;
-            display: none;
+            background: rgba(255,255,255,0.92); padding: 4px 10px;
+            border-radius: 8px; font-size: 11px; font-weight: bold; color: #2563eb; display: none;
         }
         .no-print { display: none !important; }
         .rough-path { stroke-linecap: round; }
-
-        /* Layer-Menü */
         #layerMenu {
-            display: none;
-            position: fixed;
-            top: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2000;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border: 1px solid #ddd;
-            padding: 10px;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 210px;
+            display: none; position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
+            z-index: 2000; background: white; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #ddd;
+            padding: 10px; flex-direction: column; gap: 6px; min-width: 210px;
         }
         #layerMenu.open { display: flex; }
         .layer-option { text-align: left; font-size: 11px !important; padding: 8px 12px !important; }
@@ -70,7 +60,6 @@
 
 <div id="map"></div>
 
-<!-- TOP UI -->
 <div class="top-ui">
     <button id="startWalk" class="btn bg-blue-600 text-white">START</button>
     <button id="stopWalk" class="btn bg-red-600 text-white">STOP/SAVE</button>
@@ -79,9 +68,8 @@
     <span id="liveDistDisplay">📍 0 m</span>
 </div>
 
-<!-- LAYER MENÜ -->
 <div id="layerMenu">
-    <p style="font-size:10px; font-weight:bold; color:#888; text-transform:uppercase; margin-bottom:2px; padding:0 4px;">Kartenansicht</p>
+    <p style="font-size:10px;font-weight:bold;color:#888;text-transform:uppercase;margin-bottom:2px;padding:0 4px;">Kartenansicht</p>
     <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="osm">🗺️ Standard</button>
     <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="satellite">🛰️ Satellit</button>
     <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="topo">🏔️ Topografie</button>
@@ -89,7 +77,6 @@
     <button class="layer-option btn bg-gray-50 text-gray-800" data-layer="dark">🌑 Dunkel</button>
 </div>
 
-<!-- SIDE UI -->
 <div class="side-ui">
     <div class="panel max-h-[250px] overflow-y-auto">
         <p class="font-bold text-[10px] uppercase text-gray-500 mb-2 border-b">Vergleichs-Archiv</p>
@@ -102,14 +89,13 @@
     </div>
 </div>
 
-<!-- BOTTOM LEFT FABS -->
 <div class="bottom-left">
-    <button id="photoBtn" class="fab bg-white">📸</button>
-    <button id="audioToggle" class="fab bg-orange-400 text-white">▶️</button>
-    <button id="senseBtn" class="fab bg-[#3d633d] text-white">👁️</button>
-    <button id="thoughtBtn" class="fab bg-[#12345f] text-white">💭</button>
+    <button id="photoBtn"      class="fab bg-white">📸</button>
+    <button id="audioToggle"   class="fab bg-orange-400 text-white">▶️</button>
+    <button id="senseBtn"      class="fab bg-[#3d633d] text-white">👁️</button>
+    <button id="thoughtBtn"    class="fab bg-[#12345f] text-white">💭</button>
     <button id="messageToggle" class="fab bg-orange-400 text-white">💬</button>
-    <button id="moodBtn" class="fab" style="background: radial-gradient(circle, #ff8c00, #ff4500);">🔋</button>
+    <button id="moodBtn"       class="fab" style="background:radial-gradient(circle,#ff8c00,#ff4500);">🔋</button>
 </div>
 
 <script>
@@ -118,7 +104,6 @@
 // ============================================================
 class GeoUtils {
     static toRad(angle) { return angle * Math.PI / 180; }
-
     static haversineDistance(lat1, lon1, lat2, lon2) {
         const R = 6371;
         const dLat = GeoUtils.toRad(lat2 - lat1);
@@ -130,7 +115,6 @@ class GeoUtils {
             Math.sin(dLon / 2) ** 2;
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
-
     static formatDistance(km) {
         if (km < 1) return `${Math.round(km * 1000)} m`;
         return `${km.toFixed(2)} km`;
@@ -143,26 +127,11 @@ class GeoUtils {
 const walkColors = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#46f0f0','#f032e6'];
 
 const tileLayers = {
-    osm: {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '© OpenStreetMap'
-    },
-    satellite: {
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attribution: '© Esri World Imagery'
-    },
-    topo: {
-        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-        attribution: '© OpenTopoMap'
-    },
-    bw: {
-        url: 'https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png',
-        attribution: '© OpenStreetMap'
-    },
-    dark: {
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        attribution: '© CartoDB'
-    }
+    osm:       { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '© OpenStreetMap' },
+    satellite: { url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attribution: '© Google Satellite' },
+    topo:      { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '© OpenTopoMap' },
+    bw:        { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB' },
+    dark:      { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '© CartoDB' }
 };
 
 // ============================================================
@@ -177,30 +146,31 @@ const state = {
     currentTileLayer: null,
     audioRecorder: null,
     audioChunks: [],
-    isRecording: false
+    isRecording: false,
+    sessionAudioBlobs: {}
 };
 
 // ============================================================
 // LAYER SWITCHER
 // ============================================================
 function switchLayer(key) {
+    if (!state.map) return;
     const config = tileLayers[key];
     if (!config) return;
 
-    if (state.currentTileLayer) state.map.removeLayer(state.currentTileLayer);
-
+    if (state.currentTileLayer) {
+        state.map.removeLayer(state.currentTileLayer);
+        state.currentTileLayer = null;
+    }
     state.currentTileLayer = L.tileLayer(config.url, {
-        crossOrigin: true,
-        attribution: config.attribution
-    }).addTo(state.map);
-
+        crossOrigin: true, attribution: config.attribution, maxZoom: 19
+    });
+    state.currentTileLayer.addTo(state.map);
     state.currentTileLayer.bringToBack();
 
-    // Aktiven Button hervorheben
     document.querySelectorAll('.layer-option').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.layer === key);
     });
-
     localStorage.setItem('psychogeo_layer', key);
     document.getElementById('layerMenu').classList.remove('open');
 }
@@ -209,11 +179,9 @@ document.getElementById('layerBtn').onclick = (e) => {
     e.stopPropagation();
     document.getElementById('layerMenu').classList.toggle('open');
 };
-
 document.querySelectorAll('.layer-option').forEach(btn => {
     btn.onclick = () => switchLayer(btn.dataset.layer);
 });
-
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#layerMenu') && e.target.id !== 'layerBtn') {
         document.getElementById('layerMenu').classList.remove('open');
@@ -225,11 +193,8 @@ document.addEventListener('click', (e) => {
 // ============================================================
 function initMap() {
     state.map = L.map('map', { zoomControl: false, preferCanvas: false }).setView([47.23, 9.61], 15);
-
-    // Gespeicherten oder Standard-Layer laden
     const savedLayer = localStorage.getItem('psychogeo_layer') || 'osm';
     switchLayer(savedLayer);
-
     navigator.geolocation.watchPosition(onLocationUpdate, onLocationError, { enableHighAccuracy: true });
     updateArchiveUI();
 }
@@ -268,7 +233,6 @@ function onLocationUpdate(pos) {
             document.getElementById('liveDistDisplay').textContent =
                 `📍 ${GeoUtils.formatDistance(state.current.totalDistance)}`;
         }
-
         route.push(latlng);
         times.push(now);
     }
@@ -278,7 +242,7 @@ function onLocationError(err) { console.warn("GPS: " + err.message); }
 function updateLiveRouteDisplay() {}
 
 // ============================================================
-// SPEED SEGMENT — Rough + Geschwindigkeit
+// SPEED SEGMENT
 // ============================================================
 function drawSpeedSegment(points, speedKmh) {
     const MAX_SPEED = 6;
@@ -288,9 +252,7 @@ function drawSpeedSegment(points, speedKmh) {
     const color   = state.current ? state.current.color : '#2563eb';
 
     const seg = L.polyline(points, {
-        color, weight, opacity,
-        lineCap: 'round', lineJoin: 'round',
-        className: 'rough-path'
+        color, weight, opacity, lineCap: 'round', lineJoin: 'round', className: 'rough-path'
     }).addTo(state.map);
 
     const el = seg.getElement();
@@ -308,21 +270,13 @@ function drawSpeedSegment(points, speedKmh) {
 document.getElementById('startWalk').onclick = () => {
     if (state.current) return alert("Walk läuft bereits!");
     clearAllComparisonLayers();
-
     const color = walkColors[state.walks.length % walkColors.length];
     state.current = {
-        id: Date.now(),
-        startTime: new Date().toISOString(),
+        id: Date.now(), startTime: new Date().toISOString(),
         name: new Date().toLocaleString('de-DE'),
-        route: [],
-        routeTimes: [],
-        segments: [],
-        entries: [],
-        color,
-        reflection: "",
-        totalDistance: 0
+        route: [], routeTimes: [], segments: [],
+        entries: [], color, reflection: "", totalDistance: 0
     };
-
     const display = document.getElementById('liveDistDisplay');
     display.style.display = 'inline-block';
     display.textContent = '📍 0 m';
@@ -334,14 +288,11 @@ document.getElementById('stopWalk').onclick = () => {
     if (state.current.route.length < 2) {
         if (!confirm("Strecke ist sehr kurz. Trotzdem speichern?")) return;
     }
-
     state.current.totalDistance = parseFloat(state.current.totalDistance.toFixed(4));
     state.current.segments = [];
-
     state.walks.push(state.current);
     saveToLocalStorage();
     updateArchiveUI();
-
     document.getElementById('liveDistDisplay').style.display = 'none';
     const savedDist = state.current.totalDistance;
     state.current = null;
@@ -378,21 +329,49 @@ function addEntry(type, data = {}) {
     }
 }
 
+// ============================================================
+// TEMP MARKER — ✅ alle klickbar mit Popup
+// ============================================================
 let tempLayerGroup = L.layerGroup();
 function drawTempMarker(e) {
     if (!tempLayerGroup.getBounds().isValid()) tempLayerGroup.addTo(state.map);
     const loc = [e.location.lat, e.location.lng];
+
     if (['mood','thought','sense'].includes(e.type)) {
+        const icon = { mood: '🔋', thought: '💭', sense: '👁️' }[e.type];
         L.circleMarker(loc, {
-            radius: 6, fillColor: '#2563eb', color: '#fff', weight: 1, fillOpacity: 0.8
-        }).addTo(tempLayerGroup);
-    } else {
-        L.marker(loc, { icon: L.divIcon({ html: '🔵', className: 'text-xs' }) }).addTo(tempLayerGroup);
+            radius: 8, fillColor: '#2563eb', color: '#fff', weight: 2, fillOpacity: 1
+        })
+        .addTo(tempLayerGroup)
+        .bindPopup(`
+            <b>${icon} ${e.type.toUpperCase()}</b><br>
+            <span style="font-size:12px">${e.text || '(Keine Eingabe)'}</span><br>
+            <span style="font-size:10px;color:#888">🕐 ${e.timestamp}</span>
+        `);
+
+    } else if (e.type === 'photo') {
+        L.marker(loc, { icon: L.divIcon({ html: '📸', className: 'text-lg' }) })
+        .addTo(tempLayerGroup)
+        .bindPopup(`
+            <b>📸 FOTO</b><br>
+            <img src="${e.photo}" style="width:160px;border-radius:6px;margin-top:4px"><br>
+            <span style="font-size:10px;color:#888">🕐 ${e.timestamp}</span>
+        `);
+
+    } else if (['Sound','Sprachnachricht'].includes(e.type)) {
+        const iconTxt = e.type === 'Sound' ? '🔊' : '💬';
+        L.marker(loc, { icon: L.divIcon({ html: iconTxt, className: 'text-lg' }) })
+        .addTo(tempLayerGroup)
+        .bindPopup(`
+            <b>${iconTxt} ${e.type.toUpperCase()}</b><br>
+            <audio controls src="${e.audioUrl}" style="margin-top:4px;width:160px"></audio><br>
+            <span style="font-size:10px;color:#888">🕐 ${e.timestamp}</span>
+        `);
     }
 }
 
 // ============================================================
-// VERGLEICH & ARCHIV
+// VERGLEICH
 // ============================================================
 function toggleWalkComparison(id) {
     const walkId = parseInt(id);
@@ -411,29 +390,39 @@ function toggleWalkComparison(id) {
         hideReflectionPanel();
     } else {
         const group = L.layerGroup();
-
         const polyline = L.polyline(walk.route, {
             color: walk.color, weight: 5, opacity: 0.75,
-            lineCap: 'round', lineJoin: 'round',
-            className: 'rough-path'
+            lineCap: 'round', lineJoin: 'round', className: 'rough-path'
         }).addTo(group);
-
         const el = polyline.getElement();
         if (el) el.setAttribute('filter', 'url(#roughFilter)');
 
         walk.entries.forEach(e => {
             const loc = [e.location.lat, e.location.lng];
             if (['mood','thought','sense'].includes(e.type)) {
+                const icon = { mood: '🔋', thought: '💭', sense: '👁️' }[e.type];
                 L.circleMarker(loc, {
                     radius: 8, fillColor: walk.color, color: '#fff', weight: 2, fillOpacity: 1
-                }).addTo(group).bindPopup(`<b>${e.type.toUpperCase()}</b><br>${e.text}`);
+                }).addTo(group).bindPopup(`
+                    <b>${icon} ${e.type.toUpperCase()}</b><br>
+                    <span style="font-size:12px">${e.text || ''}</span><br>
+                    <span style="font-size:10px;color:#888">🕐 ${e.timestamp}</span>
+                `);
             } else if (e.type === 'photo') {
                 L.marker(loc, { icon: L.divIcon({ html: '📸', className: 'text-lg' }) })
-                    .addTo(group).bindPopup(`<img src="${e.photo}" width="150">`);
+                .addTo(group).bindPopup(`
+                    <b>📸 FOTO</b><br>
+                    <img src="${e.photo}" style="width:160px;border-radius:6px;margin-top:4px"><br>
+                    <span style="font-size:10px;color:#888">🕐 ${e.timestamp}</span>
+                `);
             } else if (['Sound','Sprachnachricht'].includes(e.type)) {
                 const iconTxt = e.type === 'Sound' ? '🔊' : '💬';
                 L.marker(loc, { icon: L.divIcon({ html: iconTxt, className: 'text-lg' }) })
-                    .addTo(group).bindPopup(`<audio controls src="${e.audioUrl}"></audio>`);
+                .addTo(group).bindPopup(`
+                    <b>${iconTxt} ${e.type.toUpperCase()}</b><br>
+                    <audio controls src="${e.audioUrl}" style="margin-top:4px;width:160px"></audio><br>
+                    <span style="font-size:10px;color:#888">🕐 ${e.timestamp}</span>
+                `);
             }
         });
 
@@ -460,11 +449,9 @@ function showReflectionPanel(walk) {
     ta.value = walk.reflection || "";
     ta.dataset.activeWalkId = walk.id;
 }
-
 function hideReflectionPanel() {
     document.getElementById('reflectionPanel').style.display = 'none';
 }
-
 document.getElementById('saveReflection').onclick = () => {
     const ta = document.getElementById('reflectionText');
     const walkId = parseInt(ta.dataset.activeWalkId);
@@ -478,8 +465,7 @@ document.getElementById('saveReflection').onclick = () => {
 // ============================================================
 function saveToLocalStorage() {
     const cleanWalks = state.walks.map(w => ({
-        ...w,
-        segments: [],
+        ...w, segments: [],
         entries: w.entries.map(e => { const { audioBlob, ...clean } = e; return clean; })
     }));
     localStorage.setItem('psychogeo_walks', JSON.stringify(cleanWalks));
@@ -511,28 +497,28 @@ function updateArchiveUI() {
 }
 
 // ============================================================
-// EVENTS
+// AUDIO
 // ============================================================
-document.getElementById('moodBtn').onclick    = () => addEntry('mood');
-document.getElementById('thoughtBtn').onclick = () => addEntry('thought');
-document.getElementById('senseBtn').onclick   = () => addEntry('sense');
-
 async function handleRecording(buttonId, type) {
     if (!state.current) return alert("Bitte erst START drücken!");
     const btn = document.getElementById(buttonId);
     if (!state.isRecording) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            state.audioRecorder  = new MediaRecorder(stream);
-            state.audioChunks    = [];
+            state.audioRecorder = new MediaRecorder(stream);
+            state.audioChunks   = [];
             state.audioRecorder.ondataavailable = e => state.audioChunks.push(e.data);
             state.audioRecorder.onstop = () => {
-                const blob = new Blob(state.audioChunks, { type: 'audio/webm' });
-                addEntry(type, { audioUrl: URL.createObjectURL(blob), audioBlob: blob });
+                const blob     = new Blob(state.audioChunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(blob);
+                const key      = `audio_${Date.now()}`;
+                state.sessionAudioBlobs[key] = blob;
+                addEntry(type, { audioUrl, audioBlobKey: key });
             };
             state.audioRecorder.start();
             state.isRecording = true;
-            btn.innerText = "⏹️"; btn.classList.replace('bg-orange-400', 'bg-red-600');
+            btn.innerText = "⏹️";
+            btn.classList.replace('bg-orange-400', 'bg-red-600');
         } catch (err) { alert("Mikro-Zugriff verweigert."); }
     } else {
         state.audioRecorder.stop();
@@ -541,8 +527,12 @@ async function handleRecording(buttonId, type) {
         btn.classList.replace('bg-red-600', 'bg-orange-400');
     }
 }
+
 document.getElementById('audioToggle').onclick   = () => handleRecording('audioToggle', 'Sound');
 document.getElementById('messageToggle').onclick = () => handleRecording('messageToggle', 'Sprachnachricht');
+document.getElementById('moodBtn').onclick       = () => addEntry('mood');
+document.getElementById('thoughtBtn').onclick    = () => addEntry('thought');
+document.getElementById('senseBtn').onclick      = () => addEntry('sense');
 
 document.getElementById('photoBtn').onclick = () => {
     if (!state.current) return alert("Bitte erst START drücken!");
@@ -572,15 +562,10 @@ async function waitForTiles() {
 }
 
 function applyFilterInline() {
-    document.querySelectorAll('.rough-path').forEach(el => {
-        el.setAttribute('filter', 'url(#roughFilter)');
-    });
+    document.querySelectorAll('.rough-path').forEach(el => el.setAttribute('filter', 'url(#roughFilter)'));
 }
-
 function removeFilterInline() {
-    document.querySelectorAll('.rough-path').forEach(el => {
-        el.removeAttribute('filter');
-    });
+    document.querySelectorAll('.rough-path').forEach(el => el.removeAttribute('filter'));
 }
 
 function showAllEntryLabels(walksArr) {
@@ -591,23 +576,15 @@ function showAllEntryLabels(walksArr) {
             const label = L.marker([e.location.lat, e.location.lng], {
                 icon: L.divIcon({
                     html: `<div style="
-                        background:white;
-                        border:2px solid ${walk.color};
-                        border-radius:6px;
-                        padding:2px 6px;
-                        font-size:9px;
-                        font-family:sans-serif;
-                        white-space:nowrap;
+                        background:white; border:2px solid ${walk.color};
+                        border-radius:6px; padding:2px 6px; font-size:9px;
+                        font-family:sans-serif; white-space:nowrap;
                         box-shadow:0 1px 4px rgba(0,0,0,0.2);
-                        max-width:130px;
-                        overflow:hidden;
-                        text-overflow:ellipsis;
+                        max-width:130px; overflow:hidden; text-overflow:ellipsis;
                     ">${icon} ${(e.text||'').slice(0,30)}${e.text&&e.text.length>30?'…':''}</div>`,
-                    className: '',
-                    iconAnchor: [0, 0]
+                    className: '', iconAnchor: [0,0]
                 }),
-                zIndexOffset: 1000,
-                interactive: false
+                zIndexOffset: 1000, interactive: false
             }).addTo(state.map);
             label._isExportLabel = true;
         });
@@ -623,25 +600,18 @@ function removeAllEntryLabels() {
 async function takeReflectionScreenshot(walksArr, kartenFolder, isComparison) {
     const allPoints = walksArr.flatMap(w => w.route);
     if (allPoints.length > 1) {
-        state.map.fitBounds(L.latLngBounds(allPoints), {
-            padding: [60, 60], animate: false, maxZoom: 17
-        });
+        state.map.fitBounds(L.latLngBounds(allPoints), { padding: [60,60], animate: false, maxZoom: 17 });
         state.map.invalidateSize();
         await new Promise(r => setTimeout(r, 700));
     }
-
     await waitForTiles();
     await new Promise(r => setTimeout(r, 400));
-
     showAllEntryLabels(walksArr);
     await new Promise(r => setTimeout(r, 150));
-
     applyFilterInline();
 
     const canvas = await html2canvas(document.getElementById('map'), {
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
+        useCORS: true, allowTaint: false, logging: false,
         scale: Math.max(window.devicePixelRatio * 2, 3),
         ignoreElements: (el) => el.classList.contains('no-print'),
         onclone: (clonedDoc) => {
@@ -686,7 +656,7 @@ document.getElementById('exportFull').onclick = async () => {
         const zip          = new JSZip();
         const kartenFolder = zip.folder("Karten");
         const fotoFolder   = zip.folder("Fotos");
-        zip.folder("Audio");
+        const audioFolder  = zip.folder("Audio");
 
         btn.innerText = "⏳ Karte...";
         await takeReflectionScreenshot(walksToExport, kartenFolder, isComparisonExport);
@@ -705,7 +675,8 @@ document.getElementById('exportFull').onclick = async () => {
             const gedanken    = walk.entries.filter(e => e.type === 'thought');
             const wahrnehmung = walk.entries.filter(e => e.type === 'sense');
             const fotos       = walk.entries.filter(e => e.type === 'photo');
-            const audio       = walk.entries.filter(e => ['Sound','Sprachnachricht'].includes(e.type));
+            const sounds      = walk.entries.filter(e => e.type === 'Sound');
+            const nachrichten = walk.entries.filter(e => e.type === 'Sprachnachricht');
 
             let txt = '';
             txt += `╔══════════════════════════════════════════╗\n`;
@@ -718,12 +689,13 @@ document.getElementById('exportFull').onclick = async () => {
             txt += `STRECKE:    ${GeoUtils.formatDistance(walk.totalDistance || 0)}\n`;
             txt += `GPS-PUNKTE: ${walk.route.length}\n`;
             txt += `\n──────────── EINTRÄGE ÜBERSICHT ──────────\n`;
-            txt += `🔋 Stimmungen:   ${stimmungen.length}\n`;
-            txt += `💭 Gedanken:     ${gedanken.length}\n`;
-            txt += `👁️  Wahrnehmung:  ${wahrnehmung.length}\n`;
-            txt += `📸 Fotos:        ${fotos.length}\n`;
-            txt += `🔊 Audio:        ${audio.length}\n`;
-            txt += `   GESAMT:       ${walk.entries.length}\n`;
+            txt += `🔋 Stimmungen:        ${stimmungen.length}\n`;
+            txt += `💭 Gedanken:          ${gedanken.length}\n`;
+            txt += `👁️  Wahrnehmung:       ${wahrnehmung.length}\n`;
+            txt += `📸 Fotos:             ${fotos.length}\n`;
+            txt += `🔊 Sounds:            ${sounds.length}\n`;
+            txt += `💬 Sprachnachrichten: ${nachrichten.length}\n`;
+            txt += `   GESAMT:            ${walk.entries.length}\n`;
 
             if (walk.reflection) {
                 txt += `\n──────────────── REFLEXION ───────────────\n`;
@@ -735,15 +707,17 @@ document.getElementById('exportFull').onclick = async () => {
                 txt += `\n[${String(i+1).padStart(2,'0')}] ${e.timestamp} | ${e.type.toUpperCase()}\n`;
                 txt += `     📍 ${e.location.lat.toFixed(6)}, ${e.location.lng.toFixed(6)}\n`;
                 if (e.text) txt += `     → ${e.text}\n`;
-                if (e.type === 'photo') txt += `     → Foto gespeichert in /Fotos\n`;
-                if (['Sound','Sprachnachricht'].includes(e.type)) txt += `     → Audio (nur aktive Session)\n`;
+                if (e.type === 'photo') txt += `     → Foto: /Fotos/Walk_${walk.id}_${e.timestamp.replace(/:/g,'-')}_${i}.jpg\n`;
+                if (['Sound','Sprachnachricht'].includes(e.type)) {
+                    txt += `     → Audio: /Audio/Walk_${walk.id}_${e.type}_${e.timestamp.replace(/:/g,'-')}_${i}.webm\n`;
+                }
             });
 
             txt += `\n══════════════════════════════════════════\n`;
-            txt += `  GPS-KOORDINATEN (Route)\n`;
+            txt += `  GPS-KOORDINATEN\n`;
             txt += `══════════════════════════════════════════\n`;
-            walk.route.forEach((p, i) => {
-                txt += `${i+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}\n`;
+            walk.route.forEach((p, idx) => {
+                txt += `${idx+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}\n`;
             });
 
             zip.file(`PROTOKOLL_${walk.id}.txt`, txt);
@@ -751,8 +725,22 @@ document.getElementById('exportFull').onclick = async () => {
 
             fotos.forEach((e, i) => {
                 if (e.photo) {
-                    const t = e.timestamp.replace(/:/g, '-');
-                    fotoFolder.file(`Walk_${walk.id}_${t}_${i}.jpg`, e.photo.split(',')[1], { base64: true });
+                    fotoFolder.file(
+                        `Walk_${walk.id}_${e.timestamp.replace(/:/g,'-')}_${i}.jpg`,
+                        e.photo.split(',')[1], { base64: true }
+                    );
+                }
+            });
+
+            walk.entries.forEach((e, i) => {
+                if (['Sound','Sprachnachricht'].includes(e.type) && e.audioBlobKey) {
+                    const blob = state.sessionAudioBlobs[e.audioBlobKey];
+                    if (blob) {
+                        audioFolder.file(
+                            `Walk_${walk.id}_${e.type}_${e.timestamp.replace(/:/g,'-')}_${i}.webm`,
+                            blob
+                        );
+                    }
                 }
             });
         });
@@ -762,9 +750,10 @@ document.getElementById('exportFull').onclick = async () => {
         readme += `INHALT:\n`;
         readme += `  Karten/         → Reflexions-Screenshot (Rough-Linien + Labels, 3x Auflösung)\n`;
         readme += `  Fotos/          → Alle aufgenommenen Fotos\n`;
-        readme += `  Audio/          → Sprachaufnahmen (nur aktive Session)\n`;
+        readme += `  Audio/          → Sound & Sprachnachrichten als .webm\n`;
         readme += `  PROTOKOLL_*.txt → Vollprotokoll mit Chronologie und GPS\n`;
         readme += `  rohdaten_*.json → Rohdaten als JSON\n\n`;
+        readme += `HINWEIS: Audio nur aus der aktuellen Session exportierbar.\n\n`;
         readme += `WALKS:\n`;
         walksToExport.forEach(w => {
             readme += `  • ${w.name} | ${GeoUtils.formatDistance(w.totalDistance||0)} | ${w.entries.length} Einträge\n`;
