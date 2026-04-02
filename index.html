@@ -43,7 +43,6 @@
         .layer-toggle-btn .dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;}
         .layer-toggle-btn.active .dot{background:#2563eb;}
 
-        /* Archive rows */
         .walk-item{background:#fff;border-radius:10px;border:1px solid #e5e5e5;margin-bottom:8px;overflow:hidden;}
         .walk-item:last-child{margin-bottom:0;}
         .walk-header{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;transition:background 0.1s;}
@@ -64,10 +63,87 @@
 
         #reflexionText{width:100%;height:70px;font-size:11px;margin:6px 0;padding:8px;border-radius:8px;border:1px solid #ddd;resize:none;}
 
-        /* FABs */
-        #fabGrid{position:fixed;bottom:18px;left:12px;z-index:1001;display:flex;flex-direction:column;gap:10px;}
-        .fab{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.22);color:white;transition:transform 0.1s;}
-        .fab:active{transform:scale(0.92);}
+        /* ── MODERNISIERTE FAB-BUTTONS ── */
+        #fabGrid {
+            position: fixed;
+            bottom: 24px;
+            left: 16px;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 26px;
+            border: 1px solid rgba(255,255,255,0.95);
+            box-shadow:
+                0 8px 40px rgba(0,0,0,0.13),
+                0 1px 0 rgba(255,255,255,0.85) inset,
+                0 0 0 0.5px rgba(0,0,0,0.06);
+            padding: 10px 8px;
+        }
+
+        .fab {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            border-radius: 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            color: #1a1a1a;
+            transition: background 0.13s ease, transform 0.1s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .fab:hover {
+            background: rgba(0,0,0,0.06);
+            transform: scale(1.1);
+        }
+        .fab:active {
+            transform: scale(0.91);
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* Tooltip label rechts beim Hover */
+        .fab::after {
+            content: attr(data-label);
+            position: absolute;
+            left: calc(100% + 12px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(14,14,14,0.88);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1px;
+            padding: 5px 11px;
+            border-radius: 9px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            transform: translateY(-50%) translateX(-4px);
+        }
+        .fab:hover::after {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        /* Trennlinie zwischen Gruppen */
+        .fab-divider {
+            width: 28px;
+            height: 1px;
+            background: rgba(0,0,0,0.08);
+            border-radius: 1px;
+            margin: 4px 0;
+            flex-shrink: 0;
+        }
 
         /* Modals */
         #cameraModal,#audioModal,#stopModal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
@@ -82,7 +158,6 @@
         #stopAudioBtn{padding:14px 32px;border-radius:50px;border:none;background:#ef4444;color:#fff;font-size:14px;font-weight:bold;cursor:pointer;}
         #photoInput{display:none;}
 
-        /* Stop Modal */
         #stopModal .modal-box{background:#fff;border-radius:16px;padding:24px;width:min(90vw,320px);display:flex;flex-direction:column;gap:12px;}
         #stopModal h3{font-size:14px;font-weight:bold;color:#111;}
         #stopModal p{font-size:11px;color:#666;}
@@ -92,7 +167,6 @@
         #modalCancel{background:#f0f0f0;color:#555;}
         #modalSave{background:#2563eb;color:#fff;}
 
-        /* Export progress */
         #exportOverlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;}
         #exportOverlay.open{display:flex;}
         #exportBox{background:#fff;border-radius:14px;padding:24px 28px;text-align:center;min-width:200px;}
@@ -119,7 +193,6 @@
         <button id="drawerClose">✕</button>
     </div>
     <div id="drawerBody">
-        <!-- Ansicht -->
         <div class="section" id="sec-ansicht" style="display:none;">
             <div class="section-label">Kartenansicht</div>
             <button class="layer-opt active" data-url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png">Standard</button>
@@ -127,9 +200,7 @@
             <button class="layer-opt" data-url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png">Topografie</button>
             <button class="layer-opt" data-url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png">Graustufen</button>
         </div>
-        <!-- Ebenen -->
         <div class="section" id="sec-ebenen" style="display:none;">
-            <!-- Live Stats -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
                 <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;text-align:center;">
                     <div style="font-size:9px;font-weight:bold;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Schritte</div>
@@ -142,19 +213,20 @@
             </div>
             <div style="font-size:9px;font-weight:bold;color:#9ca3af;text-transform:uppercase;border-bottom:1px solid #f0f0f0;padding-bottom:4px;margin-bottom:10px;">Ebenen ein-/ausblenden</div>
             <button class="layer-toggle-btn active" data-layer="route"><span class="dot"></span> Route</button>
-            <button class="layer-toggle-btn active" data-layer="mood"><span class="dot"></span> Stimmung</button>
-            <button class="layer-toggle-btn active" data-layer="thought"><span class="dot"></span> Gedanken</button>
-            <button class="layer-toggle-btn active" data-layer="sense"><span class="dot"></span> Wahrnehmung</button>
-            <button class="layer-toggle-btn active" data-layer="sound"><span class="dot"></span> Umgebungssound</button>
-            <button class="layer-toggle-btn active" data-layer="voice"><span class="dot"></span> Sprachnachricht</button>
+            <div style="height:1px;background:#f0f0f0;margin:4px 0;"></div>
             <button class="layer-toggle-btn active" data-layer="photo"><span class="dot"></span> Fotos</button>
+            <button class="layer-toggle-btn active" data-layer="sound"><span class="dot"></span> Umgebungssound</button>
+            <div style="height:1px;background:#f0f0f0;margin:4px 0;"></div>
+            <button class="layer-toggle-btn active" data-layer="sense"><span class="dot"></span> Wahrnehmung</button>
+            <button class="layer-toggle-btn active" data-layer="thought"><span class="dot"></span> Gedanken</button>
+            <button class="layer-toggle-btn active" data-layer="voice"><span class="dot"></span> Sprachnachricht</button>
+            <div style="height:1px;background:#f0f0f0;margin:4px 0;"></div>
+            <button class="layer-toggle-btn active" data-layer="mood"><span class="dot"></span> Stimmung</button>
         </div>
-        <!-- Archiv -->
         <div class="section" id="sec-archiv" style="display:none;">
             <div class="section-label">Walks — klicken zum Anzeigen</div>
             <div id="archiveList"><div style="font-size:11px;color:#999;">Noch keine Walks gespeichert.</div></div>
         </div>
-        <!-- Reflexion -->
         <div class="section" id="reflexionPanel" style="display:none;">
             <div class="section-label">Reflexion: <span id="refWalkName"></span></div>
             <textarea id="reflexionText" placeholder="Deine Analyse hier..."></textarea>
@@ -163,14 +235,16 @@
     </div>
 </div>
 
-<!-- FABs -->
+<!-- ── MODERNISIERTE FAB-BUTTONS ── -->
 <div id="fabGrid">
-    <button id="fabPhoto"   class="fab" style="background:#555;">📸</button>
-    <button id="fabSound"   class="fab" style="background:#f97316;">🎙</button>
-    <button id="fabSense"   class="fab" style="background:#3d633d;">👁️</button>
-    <button id="fabThought" class="fab" style="background:#12345f;">💭</button>
-    <button id="fabMsg"     class="fab" style="background:#7c3aed;">💬</button>
-    <button id="fabMood"    class="fab" style="background:#ff6600;">🔋</button>
+    <button id="fabPhoto"   class="fab" data-label="Foto aufnehmen">📸</button>
+    <button id="fabSound"   class="fab" data-label="Umgebungssound">🎙</button>
+    <div class="fab-divider"></div>
+    <button id="fabSense"   class="fab" data-label="Wahrnehmung">👁</button>
+    <button id="fabThought" class="fab" data-label="Gedanke">💭</button>
+    <button id="fabMsg"     class="fab" data-label="Sprachnachricht">💬</button>
+    <div class="fab-divider"></div>
+    <button id="fabMood"    class="fab" data-label="Stimmung">🔋</button>
 </div>
 
 <!-- Kamera Modal -->
@@ -223,28 +297,21 @@
 <div id="moodModal" style="position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.78);display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:20px;padding:28px 24px;width:min(92vw,340px);display:flex;flex-direction:column;gap:16px;position:relative;z-index:3001;">
     <div style="font-size:14px;font-weight:bold;color:#111;text-align:center;letter-spacing:0.5px;">🔋 Stimmung</div>
-
     <div id="moodColorBar" style="height:16px;border-radius:8px;background:linear-gradient(to right,#3b82f6,#22c55e,#facc15,#f97316,#ef4444);position:relative;">
       <div id="moodThumb" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid #facc15;box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;"></div>
     </div>
-
-    <input type="range" id="moodSlider" min="0" max="100" value="50"
-      style="width:100%;margin:-8px 0;opacity:0;height:32px;cursor:pointer;"/>
-
+    <input type="range" id="moodSlider" min="0" max="100" value="50" style="width:100%;margin:-8px 0;opacity:0;height:32px;cursor:pointer;"/>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-top:-8px;">
       <span>0 — tief</span><span>50 — neutral</span><span>100 — hoch</span>
     </div>
-
     <div style="text-align:center;">
       <span id="moodVal" style="font-size:36px;font-weight:bold;color:#facc15;line-height:1;">50</span>
       <span style="font-size:13px;color:#aaa;">/100</span>
     </div>
-
     <textarea id="moodText" placeholder="Notiz (optional)..." style="width:100%;height:56px;border-radius:10px;border:1.5px solid #e5e5e5;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
-
     <div style="display:flex;gap:10px;">
       <button id="moodCancel" style="flex:1;padding:13px;border-radius:12px;border:none;background:#f0f0f0;color:#555;font-weight:bold;font-size:12px;cursor:pointer;text-transform:uppercase;">Abbrechen</button>
-      <button id="moodSave"   style="flex:2;padding:13px;border-radius:12px;border:none;font-weight:bold;font-size:12px;cursor:pointer;text-transform:uppercase;color:#fff;" >Marker setzen ●</button>
+      <button id="moodSave"   style="flex:2;padding:13px;border-radius:12px;border:none;font-weight:bold;font-size:12px;cursor:pointer;text-transform:uppercase;color:#fff;">Marker setzen ●</button>
     </div>
   </div>
 </div>
@@ -276,7 +343,6 @@
 <script>
 window.addEventListener('load', function () {
 
-    // ── State ──
     const walkColors = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#42d4f4','#f032e6'];
     const layerVisibility = { route:true, mood:true, thought:true, sense:true, sound:true, voice:true, photo:true };
     const mapLayers = { route:[], mood:[], thought:[], sense:[], sound:[], voice:[], photo:[] };
@@ -287,14 +353,11 @@ window.addEventListener('load', function () {
         liveRouteLayer: null, activeLayers: {}, currentTile: null
     };
 
-    // audio blobs stored separately (can't JSON serialize)
     const audioBlobs = {};
 
-    // ── Karte ──
     state.map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([47.23, 9.61], 17);
     state.currentTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { crossOrigin: true, maxZoom: 22, maxNativeZoom: 19 }).addTo(state.map);
 
-    // ── Drawer ──
     const drawer = document.getElementById('drawer');
     const drawerTitle = document.getElementById('drawerTitle');
     const panelNames = { ansicht:'🗺 Ansicht', ebenen:'☰ Ebenen', archiv:'📂 Archiv' };
@@ -317,8 +380,6 @@ window.addEventListener('load', function () {
         currentPanel = null;
     });
 
-    // ── Kartenwechsel ──
-    // currentTileUrl tracks selected tile for export
     let currentTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     document.querySelectorAll('.layer-opt').forEach(btn => {
@@ -329,22 +390,18 @@ window.addEventListener('load', function () {
             state.currentTile = L.tileLayer(url, { crossOrigin: true, maxZoom: 22, maxNativeZoom: 19 }).addTo(state.map);
             document.querySelectorAll('.layer-opt').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            // Keep drawer open — user can keep switching without closing
         };
     });
 
-    // ── Ebenen-Toggles ──
     document.querySelectorAll('.layer-toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const key = btn.getAttribute('data-layer');
             const isActive = btn.classList.toggle('active');
             layerVisibility[key] = isActive;
             if (key === 'route') {
-                // Toggle InkLayer canvas visibility
                 if (state.inkLayer && state.inkLayer._canvas) {
                     state.inkLayer._canvas.style.display = isActive ? '' : 'none';
                 }
-                // Also toggle archive ink layers
                 Object.values(state.archiveInkLayers || {}).forEach(al => {
                     if (al._canvas) al._canvas.style.display = isActive ? '' : 'none';
                 });
@@ -354,7 +411,6 @@ window.addEventListener('load', function () {
         });
     });
 
-    // ── Schrittzähler (DeviceMotion) ──
     let stepCount = 0, lastStepTime = 0;
     const STEP_THRESHOLD = 13.5, STEP_MIN_MS = 550;
 
@@ -375,11 +431,6 @@ window.addEventListener('load', function () {
         });
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  ORGANISCHE TUSCHELINIE — Canvas-basierter Leaflet Layer
-    //  Langsam = dick & opak (Tintenklecks), schnell = dünn & transparent
-    // ══════════════════════════════════════════════════════════════
-
     let lastPos = null, lastPosTime = null, smoothedSpeed = 0;
 
     function haversineDist(a, b) {
@@ -389,43 +440,32 @@ window.addEventListener('load', function () {
         return 2 * R * Math.asin(Math.sqrt(h));
     }
 
-    // Geschwindigkeit → Breite: 0 m/s=26px, 1.4 m/s=9px, 3.5+ m/s=1px
     function speedToWeight(mps) {
         const t = Math.min(mps / 3.5, 1);
         return Math.max(1, 26 * Math.pow(1 - t, 1.6));
     }
-    // Geschwindigkeit → Opacity: stehen=0.92, schnell=0.04
     function speedToOpacity(mps) {
         const t = Math.min(mps / 3.5, 1);
         return Math.max(0.04, 0.92 * Math.pow(1 - t, 1.4));
     }
 
-    // Zufälliger Versatz für organische Textur (Seed aus Position)
     function jitter(scale) { return (Math.random() - 0.5) * scale; }
 
-    // Zeichnet einen organischen Pinselstrich zwischen zwei Punkten auf dem Canvas
     function drawInkStroke(ctx, x1, y1, x2, y2, weight, opacity) {
         if (weight < 0.5) return;
         const alpha = Math.min(opacity, 1);
-        const strokes = Math.max(1, Math.round(weight * 0.7)); // mehrere Substriche für Textur
+        const strokes = Math.max(1, Math.round(weight * 0.7));
 
         for (let s = 0; s < strokes; s++) {
-            // Leichte zufällige Verschiebung pro Substrich
             const spread = weight * 0.3;
             const ox1 = jitter(spread), oy1 = jitter(spread);
             const ox2 = jitter(spread), oy2 = jitter(spread);
-
-            // Kontrollpunkte für Kurve (organisch, nicht gerade)
             const mx = (x1 + x2) / 2 + jitter(weight * 0.4);
             const my = (y1 + y2) / 2 + jitter(weight * 0.4);
-
-            // Breite variiert leicht entlang des Strichs
             const w = weight * (0.75 + Math.random() * 0.5) / strokes;
-
             ctx.beginPath();
             ctx.moveTo(x1 + ox1, y1 + oy1);
             ctx.quadraticCurveTo(mx, my, x2 + ox2, y2 + oy2);
-
             ctx.lineWidth   = w;
             ctx.lineCap     = 'round';
             ctx.lineJoin    = 'round';
@@ -433,7 +473,6 @@ window.addEventListener('load', function () {
             ctx.stroke();
         }
 
-        // Körnung: kleine unregelmäßige Punkte entlang des Pfades
         if (weight > 4) {
             const grainCount = Math.round(weight * 1.2);
             for (let g = 0; g < grainCount; g++) {
@@ -449,10 +488,9 @@ window.addEventListener('load', function () {
         }
     }
 
-    // ── Custom Leaflet Canvas Layer für Tuschelinie ──
     const InkLayer = L.Layer.extend({
         initialize() {
-            this._segments = []; // [{ll1, ll2, weight, opacity}]
+            this._segments = [];
             this._canvas = null;
             this._ctx    = null;
         },
@@ -481,8 +519,7 @@ window.addEventListener('load', function () {
             this._drawSegment(ll1, ll2, weight, opacity);
         },
         _latLngToCanvas(ll) {
-            const p = this._map.latLngToContainerPoint(ll);
-            return p;
+            return this._map.latLngToContainerPoint(ll);
         },
         _drawSegment(ll1, ll2, weight, opacity) {
             if (!this._ctx) return;
@@ -504,32 +541,22 @@ window.addEventListener('load', function () {
         getSegments() { return this._segments; }
     });
 
-    // Aktiver Ink-Layer für laufende Aufnahme
     let inkLayer = new InkLayer();
     inkLayer.addTo(state.map);
-    // Speichere Referenz so dass Toggle funktioniert
     state.inkLayer = inkLayer;
 
-    // Ebenen-Toggle für Route: zeigt/versteckt den Canvas
-    const origRouteToggle = document.querySelectorAll('.layer-toggle-btn');
-    // Handled below in the toggle listener override
-
-    // ── GPS ──
-    // Kalman-ähnlicher Positions-Glätter
     let smoothLat = null, smoothLng = null;
-    const SMOOTH_FACTOR = 0.25;   // 0=nie updaten, 1=kein Glätten
-    const MIN_DIST_M    = 3;      // Mindestbewegung in Metern bevor ein Segment gezeichnet wird
-    const MIN_ACCURACY  = 30;     // GPS-Punkte mit > 30m Ungenauigkeit ignorieren
+    const SMOOTH_FACTOR = 0.25;
+    const MIN_DIST_M    = 3;
+    const MIN_ACCURACY  = 30;
 
     navigator.geolocation.watchPosition(pos => {
-        // ── Schlechte GPS-Qualität verwerfen ──
         const acc = pos.coords.accuracy;
         if (acc > MIN_ACCURACY) return;
 
         const rawLat = pos.coords.latitude;
         const rawLng = pos.coords.longitude;
 
-        // ── Positions-Glättung (exponentieller Tiefpassfilter) ──
         if (smoothLat === null) {
             smoothLat = rawLat;
             smoothLng = rawLng;
@@ -541,7 +568,6 @@ window.addEventListener('load', function () {
         const ll  = [smoothLat, smoothLng];
         const now = Date.now();
 
-        // Live-Positionsmarker aktualisieren
         if (!state.liveMarker) {
             state.liveMarker = L.circleMarker(ll, {
                 radius: 6, fillColor: '#111', color: '#fff', weight: 2, fillOpacity: 1, zIndexOffset: 1000
@@ -554,27 +580,19 @@ window.addEventListener('load', function () {
         if (state.current) {
             if (lastPos && lastPosTime) {
                 const dist = haversineDist(lastPos, ll);
-
-                // ── Minimale Bewegungsschwelle — filtert GPS-Rauschen ──
                 if (dist < MIN_DIST_M) return;
-
                 const dt  = (now - lastPosTime) / 1000;
                 const raw = dt > 0 ? dist / dt : 0;
-                smoothedSpeed = smoothedSpeed * 0.7 + raw * 0.3;  // stärker glätten
-
+                smoothedSpeed = smoothedSpeed * 0.7 + raw * 0.3;
                 const w  = speedToWeight(smoothedSpeed);
                 const op = speedToOpacity(smoothedSpeed);
-
                 state.current.route.push(ll);
                 if (!state.current.segments) state.current.segments = [];
                 state.current.segments.push({ ll1: lastPos, ll2: ll, weight: w, opacity: op });
-
                 if (layerVisibility.route) inkLayer.addSegment(lastPos, ll, w, op);
-
                 const speedEl = document.getElementById('currentSpeed');
                 if (speedEl) speedEl.textContent = (smoothedSpeed * 3.6).toFixed(1) + ' km/h';
             } else {
-                // Ersten Punkt setzen
                 state.current.route.push(ll);
             }
             lastPos     = ll;
@@ -584,14 +602,12 @@ window.addEventListener('load', function () {
         console.warn('GPS error:', err.code, err.message);
     }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
 
-    // ── START ──
     document.getElementById('btnStart').onclick = () => {
         stepCount = 0; lastStepTime = 0; smoothedSpeed = 0; lastPos = null; lastPosTime = null;
         const stepEl = document.getElementById('stepCount');
         if (stepEl) stepEl.textContent = '0';
         const speedEl = document.getElementById('currentSpeed');
         if (speedEl) speedEl.textContent = '—';
-        // Ink-Canvas leeren für neue Aufzeichnung
         inkLayer.clearSegments();
         state.current = {
             id: Date.now(),
@@ -603,7 +619,6 @@ window.addEventListener('load', function () {
         alert("Walk gestartet!");
     };
 
-    // ── STOP → Modal → Archiv ──
     document.getElementById('btnStop').onclick = () => {
         if (!state.current) return alert("Kein aktiver Walk.");
         const modal = document.getElementById('stopModal');
@@ -619,15 +634,11 @@ window.addEventListener('load', function () {
         const nameVal = document.getElementById('walkNameInput').value.trim();
         if (nameVal) state.current.name = nameVal;
         document.getElementById('stopModal').classList.remove('open');
-
-        // Live-Segmente von Karte entfernen
         inkLayer.clearSegments();
-        // Live-Marker-Ebenen vom Karte entfernen
         Object.keys(mapLayers).forEach(key => {
             mapLayers[key].forEach(l => { try { state.map.removeLayer(l); } catch(e){} });
             mapLayers[key] = [];
         });
-
         state.walks.push(state.current);
         saveWalks();
         state.current = null;
@@ -636,19 +647,17 @@ window.addEventListener('load', function () {
     };
 
     function saveWalks() {
-        // Audio-Blob-URLs können nicht serialisiert werden – wir speichern nur Metadaten
         const toSave = state.walks.map(w => ({
             ...w,
             entries: w.entries.map(e => {
                 const copy = { ...e };
-                delete copy.audioUrl; // object URL nicht serialisierbar
+                delete copy.audioUrl;
                 return copy;
             })
         }));
         localStorage.setItem('psychogeo_walks', JSON.stringify(toSave));
     }
 
-    // ── Marker platzieren ──
     function placeMarker(type, latLng, popupHTML) {
         mapLayers[type] = mapLayers[type] || [];
         const marker = L.marker(latLng).bindPopup(popupHTML);
@@ -657,21 +666,17 @@ window.addEventListener('load', function () {
         return marker;
     }
 
-    // getPos() replaces currentLatLng() — see above
-
     function requireWalk() {
         if (!state.current) { alert("Erst START drücken!"); return false; }
         return true;
     }
 
-    // GPS-Position oder Kartenmitte als Fallback
     function getPos() {
         if (state.liveMarker) return state.liveMarker.getLatLng();
         const c = state.map.getCenter();
         return { lat: c.lat, lng: c.lng };
     }
 
-    // ══ 📸 FOTO ══
     const cameraModal = document.getElementById('cameraModal');
     const cameraPreview = document.getElementById('cameraPreview');
     const photoCanvas = document.getElementById('photoCanvas');
@@ -692,7 +697,6 @@ window.addEventListener('load', function () {
 
     function placePhotoMarker(dataUrl, pos) {
         const ts = new Date().toLocaleTimeString();
-        // Dezenter Punkt mit kleinem Foto-Thumbnail als Ring
         const icon = L.divIcon({
             html: '<div style="width:26px;height:26px;border-radius:50%;border:2.5px solid #fff;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,0.4);background:#555;">' +
                   '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover;opacity:0.85;"/></div>',
@@ -730,7 +734,6 @@ window.addEventListener('load', function () {
     };
     document.getElementById('fabPhoto').onclick = () => openCamera();
 
-    // ══ 🎙 AUDIO ══
     const audioModal = document.getElementById('audioModal');
     const audioStatus = document.getElementById('audioStatus');
     const audioTimerEl = document.getElementById('audioTimer');
@@ -787,10 +790,9 @@ window.addEventListener('load', function () {
         const ts   = new Date().toLocaleTimeString();
         const dur  = formatTime(timerSec);
         const entryId = 'audio_' + Date.now();
-        audioBlobs[entryId] = blob;  // store blob for export
+        audioBlobs[entryId] = blob;
         state.current.entries.push({ type:audioType, location:{lat:pos.lat,lng:pos.lng}, timestamp:ts, audioDuration:dur, audioUrl:url, entryId });
         const color = audioType === 'voice' ? '#7c3aed' : '#f97316';
-        // Dezenter Punkt: kleiner Kreis mit Symbol-Linie innen
         const svgInner = audioType === 'voice'
             ? '<line x1="8" y1="5" x2="8" y2="11" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>'
             : '<circle cx="8" cy="8" r="3" fill="none" stroke="#fff" stroke-width="1.8"/><line x1="8" y1="2" x2="8" y2="5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>';
@@ -809,20 +811,10 @@ window.addEventListener('load', function () {
     document.getElementById('fabSound').onclick = () => openAudioModal('sound');
     document.getElementById('fabMsg').onclick   = () => openAudioModal('voice');
 
-    // ══ Individuelle Marker-Icons ══
-    function makePinIcon(emoji, bgColor, size) {
-        size = size || 40;
-        return L.divIcon({
-            html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + bgColor + ';border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">' +
-                  '<span style="transform:rotate(45deg);font-size:' + Math.round(size*0.42) + 'px;line-height:1;">' + emoji + '</span></div>',
-            iconSize:[size,size], iconAnchor:[size/2, size], popupAnchor:[0,-(size+4)]
-        });
-    }
-
     function makeDotIcon(color, size) {
         size = size || 20;
         return L.divIcon({
-            className: '',  // kein Leaflet-Default-Styling
+            className: '',
             html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.4);"></div>',
             iconSize: [size, size],
             iconAnchor: [size/2, size/2],
@@ -831,7 +823,6 @@ window.addEventListener('load', function () {
     }
 
     function moodColor(val) {
-        // 0=blau, 50=grün-gelb, 100=rot
         if (val < 25)  return '#3b82f6';
         if (val < 50)  return '#22c55e';
         if (val < 75)  return '#facc15';
@@ -839,7 +830,6 @@ window.addEventListener('load', function () {
         return '#ef4444';
     }
 
-    // ── Stimmungs-Modal ──
     const moodModal  = document.getElementById('moodModal');
     const moodSlider = document.getElementById('moodSlider');
     const moodValEl  = document.getElementById('moodVal');
@@ -856,14 +846,9 @@ window.addEventListener('load', function () {
     }
 
     updateMoodUI(50);
+    moodSlider.addEventListener('input', () => { updateMoodUI(parseInt(moodSlider.value)); });
 
-    moodSlider.addEventListener('input', () => {
-        updateMoodUI(parseInt(moodSlider.value));
-    });
-
-    document.getElementById('moodCancel').addEventListener('click', () => {
-        moodModal.style.display = 'none';
-    });
+    document.getElementById('moodCancel').addEventListener('click', () => { moodModal.style.display = 'none'; });
 
     document.getElementById('moodSave').addEventListener('click', () => {
         if (!requireWalk()) return;
@@ -873,19 +858,15 @@ window.addEventListener('load', function () {
         const pos  = getPos();
         const ts   = new Date().toLocaleTimeString();
 
-        // Eintrag speichern
         state.current.entries.push({
             type:'mood', location:{lat:pos.lat, lng:pos.lng},
             timestamp:ts, moodValue:val, markerColor:col, text:note
         });
 
-        // Farbiger Kreis-Marker auf Karte
         const icon = L.divIcon({
             className: '',
             html: '<div style="width:22px;height:22px;border-radius:50%;background:' + col + ';border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.45);"></div>',
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-            popupAnchor: [0, -16]
+            iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -16]
         });
 
         const popup =
@@ -907,7 +888,6 @@ window.addEventListener('load', function () {
             setTimeout(() => m.openPopup(), 100);
         }
 
-        // Reset
         moodModal.style.display = 'none';
         document.getElementById('moodText').value = '';
         moodSlider.value = 50;
@@ -919,7 +899,6 @@ window.addEventListener('load', function () {
         moodModal.style.display = 'flex';
     });
 
-    // ── Gedanken-Modal ──
     const thoughtModal = document.getElementById('thoughtModal');
     document.getElementById('thoughtCancel').onclick = () => { thoughtModal.style.display = 'none'; };
     document.getElementById('thoughtSave').onclick = () => {
@@ -944,7 +923,6 @@ window.addEventListener('load', function () {
         thoughtModal.style.display = 'flex';
     };
 
-    // ── Wahrnehmungs-Modal ──
     const senseModal = document.getElementById('senseModal');
     document.getElementById('senseCancel').onclick = () => { senseModal.style.display = 'none'; };
     document.getElementById('senseSave').onclick = () => {
@@ -969,7 +947,6 @@ window.addEventListener('load', function () {
         senseModal.style.display = 'flex';
     };
 
-    // ══ ARCHIV ══
     function toggleWalk(id) {
         const walk = state.walks.find(w => w.id == id);
         if (!walk) return;
@@ -979,7 +956,6 @@ window.addEventListener('load', function () {
         if (state.activeLayers[id]) {
             state.map.removeLayer(state.activeLayers[id]);
             delete state.activeLayers[id];
-            // Auch Archive-InkLayer entfernen
             if (state.archiveInkLayers && state.archiveInkLayers[id]) {
                 state.map.removeLayer(state.archiveInkLayers[id]);
                 delete state.archiveInkLayers[id];
@@ -989,22 +965,18 @@ window.addEventListener('load', function () {
             if (Object.keys(state.activeLayers).length === 0) document.getElementById('reflexionPanel').style.display = 'none';
         } else {
             const group = L.layerGroup();
-            // Ink-Layer für archivierte Route
             if (!state.archiveInkLayers) state.archiveInkLayers = {};
-            // Alten Layer entfernen falls vorhanden
             if (state.archiveInkLayers[id]) {
                 state.map.removeLayer(state.archiveInkLayers[id]);
                 delete state.archiveInkLayers[id];
             }
             if (walk.segments && walk.segments.length > 0) {
-                // Benutze gespeicherte Segmente mit originaler Stärke/Opazität
                 const archiveInk = new InkLayer();
                 archiveInk.addTo(state.map);
                 walk.segments.forEach(s => archiveInk.addSegment(s.ll1, s.ll2, s.weight, s.opacity));
                 state.archiveInkLayers[id] = archiveInk;
                 if (!layerVisibility.route) archiveInk._canvas.style.display = 'none';
             } else if (walk.route && walk.route.length > 1) {
-                // Fallback für ältere Walks ohne segments
                 const archiveInk = new InkLayer();
                 archiveInk.addTo(state.map);
                 for (let i = 1; i < walk.route.length; i++) {
@@ -1024,7 +996,6 @@ window.addEventListener('load', function () {
                     : e.type === 'sound'  ? '#f97316'
                     : e.type === 'photo'  ? '#555'
                     : walk.color;
-                // mood/thought/sense bigger; audio/photo smaller & more transparent
                 const dotRadius  = (e.type==='mood'||e.type==='thought'||e.type==='sense') ? 7 : 5;
                 const dotOpacity = (e.type==='photo'||e.type==='voice'||e.type==='sound')  ? 0.6 : 0.92;
                 L.circleMarker([e.location.lat, e.location.lng], {
@@ -1036,7 +1007,6 @@ window.addEventListener('load', function () {
             if (header) header.classList.add('shown');
             if (actions) actions.classList.add('open');
 
-            // Reflexion
             const panel = document.getElementById('reflexionPanel');
             panel.style.display = 'block';
             document.getElementById('refWalkName').innerText = walk.name;
@@ -1104,7 +1074,6 @@ window.addEventListener('load', function () {
 
     function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-    // ══ EXPORT (ZIP) ══
     async function exportWalk(walk) {
         if (typeof JSZip === 'undefined') { alert("JSZip nicht geladen."); return; }
         const overlay = document.getElementById('exportOverlay');
@@ -1115,80 +1084,54 @@ window.addEventListener('load', function () {
             const zip = new JSZip();
             const folder = zip.folder(walk.name.replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '_'));
 
-            // 1. JSON Daten
             msg.textContent = 'Exportiere Daten...';
             const jsonData = {
-                name: walk.name,
-                date: walk.name,
-                color: walk.color,
-                kartenansicht: currentTileUrl,
-                reflection: walk.reflection || '',
+                name: walk.name, date: walk.name, color: walk.color,
+                kartenansicht: currentTileUrl, reflection: walk.reflection || '',
                 route: walk.route,
                 entries: walk.entries.map(e => ({
-                    type: e.type,
-                    timestamp: e.timestamp,
-                    location: e.location,
-                    text: e.text || null,
-                    audioDuration: e.audioDuration || null,
-                    entryId: e.entryId || null
+                    type: e.type, timestamp: e.timestamp, location: e.location,
+                    text: e.text || null, audioDuration: e.audioDuration || null, entryId: e.entryId || null
                 }))
             };
             folder.file('walk_daten.json', JSON.stringify(jsonData, null, 2));
 
-            // 2. GPX
             msg.textContent = 'Erstelle GPX...';
             let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Begleitinstrument PRO">\n  <trk>\n    <name>' + escHtml(walk.name) + '</name>\n    <trkseg>\n';
             walk.route.forEach(p => { gpx += '      <trkpt lat="' + p[0] + '" lon="' + p[1] + '"></trkpt>\n'; });
             gpx += '    </trkseg>\n  </trk>\n</gpx>';
             folder.file('route.gpx', gpx);
 
-            // 3. Fotos
             msg.textContent = 'Exportiere Fotos...';
             let photoCount = 0;
             walk.entries.forEach(e => {
                 if (e.type === 'photo' && e.dataUrl) {
                     photoCount++;
-                    const base64 = e.dataUrl.split(',')[1];
-                    folder.file('foto_' + photoCount + '_' + (e.timestamp||'').replace(/:/g,'-') + '.jpg', base64, { base64: true });
+                    folder.file('foto_' + photoCount + '_' + (e.timestamp||'').replace(/:/g,'-') + '.jpg', e.dataUrl.split(',')[1], { base64: true });
                 }
             });
 
-            // 4. Audio-Dateien
             msg.textContent = 'Exportiere Audio...';
             let audioCount = 0;
             walk.entries.forEach(e => {
                 if ((e.type === 'voice' || e.type === 'sound') && e.entryId && audioBlobs[e.entryId]) {
                     audioCount++;
-                    const prefix = e.type === 'voice' ? 'sprachnachricht' : 'umgebungssound';
-                    folder.file(prefix + '_' + audioCount + '.mp4', audioBlobs[e.entryId]);
+                    folder.file((e.type==='voice'?'sprachnachricht':'umgebungssound') + '_' + audioCount + '.mp4', audioBlobs[e.entryId]);
                 }
             });
 
-            // 5. Karten-Screenshot
             msg.textContent = 'Erstelle Kartenbild...';
             await takeMapSnapshot(walk, folder);
 
-            // 6. Reflexion als TXT
-            if (walk.reflection) {
-                folder.file('reflexion.txt', walk.reflection);
-            }
+            if (walk.reflection) folder.file('reflexion.txt', walk.reflection);
 
-            // 7. README
             const readme =
-                'BEGLEITINSTRUMENT PRO — Export\n' +
-                '==============================\n' +
-                'Walk: ' + walk.name + '\n' +
-                'Einträge: ' + walk.entries.length + '\n' +
-                'Wegpunkte: ' + walk.route.length + '\n' +
-                'Fotos: ' + photoCount + '\n' +
-                'Audioaufnahmen: ' + audioCount + '\n\n' +
-                'Dateien:\n' +
-                '  walk_daten.json  — Alle Daten als JSON\n' +
-                '  route.gpx        — Route als GPX (GPS-Exchange)\n' +
-                '  karte.png        — Kartenausschnitt mit Route\n' +
-                '  foto_*.jpg       — Aufgenommene Fotos\n' +
-                '  sprachnachricht_*.mp4 / umgebungssound_*.mp4 — Aufnahmen\n' +
-                '  reflexion.txt    — Reflexionstext\n';
+                'BEGLEITINSTRUMENT PRO — Export\n==============================\n' +
+                'Walk: ' + walk.name + '\nEinträge: ' + walk.entries.length + '\nWegpunkte: ' + walk.route.length + '\n' +
+                'Fotos: ' + photoCount + '\nAudioaufnahmen: ' + audioCount + '\n\n' +
+                'Dateien:\n  walk_daten.json  — Alle Daten als JSON\n  route.gpx  — Route als GPX\n' +
+                '  karte.png  — Kartenausschnitt\n  foto_*.jpg  — Fotos\n' +
+                '  sprachnachricht_*.mp4 / umgebungssound_*.mp4  — Aufnahmen\n  reflexion.txt  — Reflexionstext\n';
             folder.file('README.txt', readme);
 
             msg.textContent = 'Erstelle ZIP...';
@@ -1196,7 +1139,6 @@ window.addEventListener('load', function () {
                 msg.textContent = 'Packe... ' + Math.round(meta.percent) + '%';
             });
 
-            // Download
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1212,14 +1154,8 @@ window.addEventListener('load', function () {
     }
 
     async function takeMapSnapshot(walk, folder) {
-        // ── Reines Canvas-Rendering: keine CORS-Probleme mit Tile-Images ──
-        // Zeichnet Route + Marker auf weißem/hellem Hintergrund, immer zuverlässig
         try {
-            const EXPORT_W = 1200;
-            const EXPORT_H = 900;
-            const PAD = 80;  // Rand in Pixel
-
-            // Bounds der Route berechnen
+            const EXPORT_W = 1200, EXPORT_H = 900, PAD = 80;
             const route = walk.route || [];
             if (route.length < 2) { folder.file('karte.png', '', { base64: false }); return; }
 
@@ -1229,37 +1165,24 @@ window.addEventListener('load', function () {
                 minLng = Math.min(minLng, lng); maxLng = Math.max(maxLng, lng);
             });
 
-            // Konvertierung geo → Canvas-Pixel
             const latSpan = maxLat - minLat || 0.001;
             const lngSpan = maxLng - minLng || 0.001;
-            const scaleX  = (EXPORT_W - PAD*2) / lngSpan;
-            const scaleY  = (EXPORT_H - PAD*2) / latSpan;
-            const scale   = Math.min(scaleX, scaleY);
+            const scale   = Math.min((EXPORT_W - PAD*2) / lngSpan, (EXPORT_H - PAD*2) / latSpan);
 
             function toXY(lat, lng) {
-                return {
-                    x: PAD + (lng - minLng) * scale,
-                    y: EXPORT_H - PAD - (lat - minLat) * scale
-                };
+                return { x: PAD + (lng - minLng) * scale, y: EXPORT_H - PAD - (lat - minLat) * scale };
             }
 
-            // Canvas aufbauen
             const canvas = document.createElement('canvas');
-            canvas.width  = EXPORT_W;
-            canvas.height = EXPORT_H;
+            canvas.width = EXPORT_W; canvas.height = EXPORT_H;
             const ctx = canvas.getContext('2d');
 
-            // ── Hintergrund: helles Papier ──
             ctx.fillStyle = '#f8f6f1';
             ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
-
-            // Leichtes Gitter für Orientierung
-            ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 1;
             for (let x = 0; x < EXPORT_W; x += 60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,EXPORT_H); ctx.stroke(); }
             for (let y = 0; y < EXPORT_H; y += 60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(EXPORT_W,y); ctx.stroke(); }
 
-            // ── Tuschelinie ──
             const segs = walk.segments || [];
             if (segs.length > 0) {
                 segs.forEach(s => {
@@ -1268,73 +1191,47 @@ window.addEventListener('load', function () {
                     drawInkStroke(ctx, p1.x, p1.y, p2.x, p2.y, s.weight, s.opacity);
                 });
             } else {
-                // Fallback: einfache Linie wenn keine Segmentdaten
                 ctx.beginPath();
                 route.forEach(([lat, lng], i) => {
                     const {x, y} = toXY(lat, lng);
                     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
                 });
-                ctx.strokeStyle = 'rgba(20,16,12,0.7)';
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.stroke();
+                ctx.strokeStyle = 'rgba(20,16,12,0.7)'; ctx.lineWidth = 5;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
             }
 
-            // ── Eintrags-Marker ──
             const dotColors = { mood: null, thought:'#22c55e', sense:'#f97316', voice:'#7c3aed', sound:'#f97316', photo:'#555' };
             walk.entries.forEach(e => {
                 if (!e.location) return;
                 const col = e.type === 'mood' ? (e.markerColor || '#facc15') : (dotColors[e.type] || walk.color);
                 const r   = (e.type==='mood'||e.type==='thought'||e.type==='sense') ? 9 : 6;
                 const {x, y} = toXY(e.location.lat, e.location.lng);
-                // Weißer Ring
-                ctx.beginPath(); ctx.arc(x, y, r+2, 0, Math.PI*2);
-                ctx.fillStyle = '#fff'; ctx.fill();
-                // Farbiger Punkt
-                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
-                ctx.fillStyle = col; ctx.fill();
-                // Label
+                ctx.beginPath(); ctx.arc(x, y, r+2, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fillStyle = col; ctx.fill();
                 if (e.text || e.moodValue !== undefined) {
                     const label = e.moodValue !== undefined ? String(e.moodValue) : (e.text||'').substring(0,20);
-                    ctx.font = '11px sans-serif';
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(0,0,0,0.6)';
                     ctx.fillText(label, x + r + 3, y + 4);
                 }
             });
 
-            // ── Start- und Endpunkt ──
             const startPt = toXY(route[0][0], route[0][1]);
             const endPt   = toXY(route[route.length-1][0], route[route.length-1][1]);
             ctx.beginPath(); ctx.arc(startPt.x, startPt.y, 8, 0, Math.PI*2);
-            ctx.fillStyle = '#22c55e'; ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#22c55e'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
             ctx.beginPath(); ctx.arc(endPt.x, endPt.y, 8, 0, Math.PI*2);
-            ctx.fillStyle = '#ef4444'; ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
 
-            // ── Info-Box oben links ──
             ctx.fillStyle = 'rgba(255,255,255,0.88)';
             ctx.beginPath(); ctx.roundRect(16, 16, 320, 72, 10); ctx.fill();
             ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
-            ctx.fillStyle = '#111';
-            ctx.font = 'bold 15px sans-serif';
-            ctx.fillText(walk.name, 28, 40);
-            ctx.font = '11px sans-serif';
-            ctx.fillStyle = '#666';
-            const entryCount = walk.entries.length;
-            const stepTxt = walk.steps ? '  ·  👣 ' + walk.steps.toLocaleString('de-DE') + ' Schritte' : '';
-            ctx.fillText('📍 ' + route.length + ' Punkte  ·  ' + entryCount + ' Einträge' + stepTxt, 28, 58);
-            ctx.fillText('Start ●', 28, 76); ctx.fillStyle = '#22c55e'; ctx.fillText(' ●', 54, 76);
-            ctx.fillStyle = '#666'; ctx.fillText('  Ende ●', 64, 76); ctx.fillStyle = '#ef4444'; ctx.fillText(' ●', 96, 76);
+            ctx.fillStyle = '#111'; ctx.font = 'bold 15px sans-serif'; ctx.fillText(walk.name, 28, 40);
+            ctx.font = '11px sans-serif'; ctx.fillStyle = '#666';
+            ctx.fillText('📍 ' + route.length + ' Punkte  ·  ' + walk.entries.length + ' Einträge' + (walk.steps ? '  ·  👣 ' + walk.steps.toLocaleString('de-DE') + ' Schritte' : ''), 28, 58);
 
-            // ── Legende Marker-Farben ──
             const legend = [
-                { col:'#22c55e', label:'Gedanke' },
-                { col:'#f97316', label:'Wahrnehmung' },
-                { col:'#facc15', label:'Stimmung' },
-                { col:'#7c3aed', label:'Sprache' },
-                { col:'#555',    label:'Foto' }
+                { col:'#22c55e', label:'Gedanke' }, { col:'#f97316', label:'Wahrnehmung' },
+                { col:'#facc15', label:'Stimmung' }, { col:'#7c3aed', label:'Sprache' }, { col:'#555', label:'Foto' }
             ];
             let ly = EXPORT_H - 16 - legend.length * 18;
             ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -1347,16 +1244,12 @@ window.addEventListener('load', function () {
                 ly += 18;
             });
 
-            const dataUrl = canvas.toDataURL('image/png');
-            const base64  = dataUrl.split(',')[1];
+            const base64 = canvas.toDataURL('image/png').split(',')[1];
             if (base64) folder.file('karte.png', base64, { base64: true });
 
-        } catch(err) {
-            console.error('Snapshot error:', err);
-        }
+        } catch(err) { console.error('Snapshot error:', err); }
     }
 
-    // ── Initial ──
     renderArchive();
 });
 </script>
