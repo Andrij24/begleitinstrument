@@ -51,12 +51,6 @@
     .wb-export{background:#16a34a;color:#fff;}
     .wb-analyse{background:#7c3aed;color:#fff;}
     .wb-delete{background:#fee2e2;color:#dc2626;}
-    .ref-question{font-size:11px;font-weight:bold;color:#374151;margin-bottom:4px;margin-top:10px;}
-    .ref-question:first-of-type{margin-top:0;}
-    textarea.ref-input{width:100%;font-size:11px;padding:8px;border-radius:8px;border:1px solid #ddd;resize:none;font-family:sans-serif;background:#fafafa;}
-    .mood-retro-wrap{display:flex;align-items:center;gap:8px;margin:4px 0;}
-    .mood-retro-wrap input[type=range]{flex:1;}
-    .mood-retro-val{font-size:14px;font-weight:bold;min-width:28px;text-align:right;}
 
     /* Auswertungs-Modal — ohne Dritte-Sicht */
     #analyseModal{position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,0.82);display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
@@ -217,25 +211,6 @@
       <div class="section-label">Walks</div>
       <div id="archiveList"><div style="font-size:11px;color:#999;">Noch keine Walks gespeichert.</div></div>
     </div>
-    <div class="section" id="reflexionPanel" style="display:none;">
-      <div class="section-label">Reflexion: <span id="refWalkName"></span></div>
-      <div class="ref-question">Wie erinnerst du den Walk insgesamt?</div>
-      <textarea class="ref-input" id="refFrei" rows="3" placeholder="Freie Beschreibung..."></textarea>
-      <div class="ref-question">Stimmung rückblickend (0=tief, 100=hoch)</div>
-      <div class="mood-retro-wrap">
-        <input type="range" id="refMoodSlider" min="0" max="100" value="50" step="1"/>
-        <span class="mood-retro-val" id="refMoodVal" style="color:#facc15;">50</span>
-      </div>
-      <div class="ref-question">Welcher Moment blieb am stärksten in Erinnerung?</div>
-      <textarea class="ref-input" id="refMoment" rows="2" placeholder="Ort, Situation, Eindruck..."></textarea>
-      <div class="ref-question">Orte die deine Stimmung beeinflusst haben?</div>
-      <textarea class="ref-input" id="refOrte" rows="2" placeholder="Park, Kreuzung, Lärm..."></textarea>
-      <div class="ref-question">Was war bedeutsam aber nicht aufgezeichnet?</div>
-      <textarea class="ref-input" id="refNicht" rows="2" placeholder="Was fehlt in den Daten?"></textarea>
-      <div class="ref-question">Was überrascht dich beim Blick auf die Aufzeichnung?</div>
-      <textarea class="ref-input" id="refUeber" rows="2" placeholder="Diskrepanz, Überraschung..."></textarea>
-      <button id="btnSaveRef" class="btn btn-blue w-full" style="margin-top:10px;">💾 Reflexion speichern</button>
-    </div>
   </div>
 </div>
 
@@ -365,7 +340,6 @@ window.addEventListener('load', function() {
   let state={walks:JSON.parse(localStorage.getItem('psychogeo_walks')||'[]'),current:null,map:null,liveMarker:null,activeLayers:{},currentTile:null,archiveInkLayers:{}};
   const audioBlobs={};
   let currentTileUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  let currentRefId=null;
 
   state.map=L.map('map',{zoomControl:false,maxZoom:22}).setView([47.23,9.61],17);
   state.currentTile=L.tileLayer(currentTileUrl,{crossOrigin:true,maxZoom:22,maxNativeZoom:19}).addTo(state.map);
@@ -548,7 +522,7 @@ window.addEventListener('load', function() {
     document.getElementById('stepCount').textContent='0';
     document.getElementById('currentSpeed').textContent='—';
     inkLayer.clearSegments();
-    state.current={id:Date.now(),name:new Date().toLocaleString('de-DE'),route:[],segments:[],entries:[],steps:0,color:walkColors[state.walks.length%walkColors.length],reflection:{frei:'',moodRetro:50,moment:'',orte:'',nicht:'',ueber:''}};
+    state.current={id:Date.now(),name:new Date().toLocaleString('de-DE'),route:[],segments:[],entries:[],steps:0,color:walkColors[state.walks.length%walkColors.length]};
     requestWakeLock();
     alert('Walk gestartet!');
   };
@@ -560,7 +534,6 @@ window.addEventListener('load', function() {
     document.getElementById('stopModal').classList.remove('open');
     inkLayer.clearSegments();
     Object.keys(mapLayers).forEach(k=>{mapLayers[k].forEach(l=>{try{state.map.removeLayer(l);}catch(e){}});mapLayers[k]=[];});
-    if(!state.current.reflection)state.current.reflection={frei:'',moodRetro:50,moment:'',orte:'',nicht:'',ueber:''};
     releaseWakeLock();    state.walks.push(state.current);saveWalks();state.current=null;renderArchive();openPanel('archiv');
   };
 
@@ -568,23 +541,6 @@ window.addEventListener('load', function() {
     const ts=state.walks.map(w=>({...w,entries:w.entries.map(e=>{const c={...e};delete c.audioUrl;return c;})}));
     localStorage.setItem('psychogeo_walks',JSON.stringify(ts));
   }
-
-  document.getElementById('btnSaveRef').onclick=()=>{
-    const walk=state.walks.find(w=>w.id==currentRefId);if(!walk)return;
-    if(!walk.reflection)walk.reflection={};
-    walk.reflection.frei=document.getElementById('refFrei').value;
-    walk.reflection.moodRetro=parseInt(document.getElementById('refMoodSlider').value);
-    walk.reflection.moment=document.getElementById('refMoment').value;
-    walk.reflection.orte=document.getElementById('refOrte').value;
-    walk.reflection.nicht=document.getElementById('refNicht').value;
-    walk.reflection.ueber=document.getElementById('refUeber').value;
-    saveWalks();alert('Reflexion gespeichert.');
-  };
-  document.getElementById('refMoodSlider').addEventListener('input',function(){
-    const v=parseInt(this.value),col=moodColor(v);
-    document.getElementById('refMoodVal').textContent=v;
-    document.getElementById('refMoodVal').style.color=col;
-  });
 
   function placeMarker(type,latLng,popupHTML){
     mapLayers[type]=mapLayers[type]||[];
@@ -700,7 +656,6 @@ window.addEventListener('load', function() {
       state.map.removeLayer(state.activeLayers[id]);delete state.activeLayers[id];
       if(state.archiveInkLayers[id]){state.map.removeLayer(state.archiveInkLayers[id]);delete state.archiveInkLayers[id];}
       if(header)header.classList.remove('shown');if(actions)actions.classList.remove('open');
-      if(Object.keys(state.activeLayers).length===0)document.getElementById('reflexionPanel').style.display='none';
     } else {
       const group=L.layerGroup();
       if(walk.segments&&walk.segments.length>0){
@@ -725,19 +680,6 @@ window.addEventListener('load', function() {
         walk.entries.forEach(e=>{if(e.location)bounds.extend([e.location.lat,e.location.lng]);});
         state.map.fitBounds(bounds,{padding:[60,60],maxZoom:17,animate:true,duration:0.8});
       }
-      currentRefId=id;
-      document.getElementById('reflexionPanel').style.display='block';
-      document.getElementById('refWalkName').innerText=walk.name;
-      const ref=walk.reflection||{};
-      document.getElementById('refFrei').value=ref.frei||'';
-      document.getElementById('refMoment').value=ref.moment||'';
-      document.getElementById('refOrte').value=ref.orte||'';
-      document.getElementById('refNicht').value=ref.nicht||'';
-      document.getElementById('refUeber').value=ref.ueber||'';
-      const mr=ref.moodRetro!==undefined?ref.moodRetro:50;
-      document.getElementById('refMoodSlider').value=mr;
-      document.getElementById('refMoodVal').textContent=mr;
-      document.getElementById('refMoodVal').style.color=moodColor(mr);
     }
   }
   window.toggleWalk=toggleWalk;
@@ -808,7 +750,7 @@ window.addEventListener('load', function() {
       actions.querySelector('.wb-save').onclick=()=>{const n=actions.querySelector('.walk-name-input').value.trim();if(!n)return;w.name=n;header.querySelector('.walk-label').firstChild.textContent=n;saveWalks();};
       actions.querySelector('.wb-analyse').onclick=()=>openAnalyse(w);
       actions.querySelector('.wb-export').onclick=()=>exportWalk(w);
-      actions.querySelector('.wb-delete').onclick=()=>{if(!confirm('Walk "'+w.name+'" wirklich löschen?'))return;if(state.activeLayers[w.id]){state.map.removeLayer(state.activeLayers[w.id]);delete state.activeLayers[w.id];}if(state.archiveInkLayers[w.id]){state.map.removeLayer(state.archiveInkLayers[w.id]);delete state.archiveInkLayers[w.id];}state.walks=state.walks.filter(x=>x.id!==w.id);saveWalks();renderArchive();if(Object.keys(state.activeLayers).length===0)document.getElementById('reflexionPanel').style.display='none';};
+      actions.querySelector('.wb-delete').onclick=()=>{if(!confirm('Walk "'+w.name+'" wirklich löschen?'))return;if(state.activeLayers[w.id]){state.map.removeLayer(state.activeLayers[w.id]);delete state.activeLayers[w.id];}if(state.archiveInkLayers[w.id]){state.map.removeLayer(state.archiveInkLayers[w.id]);delete state.archiveInkLayers[w.id];}state.walks=state.walks.filter(x=>x.id!==w.id);saveWalks();renderArchive();};
       item.appendChild(header);item.appendChild(actions);list.appendChild(item);
     });
   }
