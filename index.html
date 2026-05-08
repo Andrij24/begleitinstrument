@@ -199,7 +199,7 @@
 <div id="topBar">
   <button id="btnStart" class="btn btn-blue">START</button>
   <button id="btnStop" class="btn btn-red">STOP / SAVE</button>
-  <button id="btnExportLast" class="btn" style="background:#16a34a;color:#fff;display:none;">📦 Export</button>
+
 </div>
 <div id="panelToggles">
   <button class="panel-tab" data-panel="ansicht">🗺 Ansicht</button>
@@ -509,9 +509,51 @@ window.addEventListener('load', function() {
       antialias:true
     });
     map3dInstance.on('load',()=>{
+      // Terrain
       map3dInstance.addSource('terrain',{type:'raster-dem',url:'https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=kIVeCJrwqaa77bZoYoEF',tileSize:256});
       map3dInstance.setTerrain({source:'terrain',exaggeration:2.5});
       map3dInstance.setSky({'sky-color':'#a8c8e8','sky-horizon-blend':0.4,'horizon-color':'#dceaf5','horizon-fog-blend':0.15,'fog-color':'#c8dcea','fog-ground-blend':0.4});
+
+      // Gespeicherte Walks als Linien einzeichnen
+      state.walks.forEach((walk,wi)=>{
+        if(!walk.route||walk.route.length<2) return;
+        const srcId='walk-'+walk.id;
+        map3dInstance.addSource(srcId,{
+          type:'geojson',
+          data:{type:'Feature',geometry:{type:'LineString',
+            coordinates:walk.route.map(p=>[p[1],p[0]])}}
+        });
+        map3dInstance.addLayer({
+          id:srcId+'-line',
+          type:'line',
+          source:srcId,
+          layout:{'line-join':'round','line-cap':'round'},
+          paint:{
+            'line-color':walk.color||'#e6194b',
+            'line-width':['interpolate',['linear'],['zoom'],12,2,16,5,19,9],
+            'line-opacity':0.85
+          }
+        });
+        // Eintrags-Marker
+        const points=walk.entries.filter(e=>e.location).map(e=>({
+          type:'Feature',
+          geometry:{type:'Point',coordinates:[e.location.lng,e.location.lat]},
+          properties:{type:e.type,mood:e.moodValue||''}
+        }));
+        if(points.length>0){
+          map3dInstance.addSource(srcId+'-pts',{type:'geojson',data:{type:'FeatureCollection',features:points}});
+          map3dInstance.addLayer({
+            id:srcId+'-pts-layer',type:'circle',source:srcId+'-pts',
+            paint:{
+              'circle-radius':['interpolate',['linear'],['zoom'],12,3,16,7,19,12],
+              'circle-color':walk.color||'#e6194b',
+              'circle-stroke-color':'#fff',
+              'circle-stroke-width':1.5,
+              'circle-opacity':0.9
+            }
+          });
+        }
+      });
     });
     map3dInstance.on('load',()=>{
       map3dInstance.addSource('terrain',{type:'raster-dem',url:'https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=kIVeCJrwqaa77bZoYoEF',tileSize:256});
@@ -716,15 +758,24 @@ window.addEventListener('load', function() {
     releaseWakeLock();
     const savedWalk=state.current;
     state.walks.push(state.current);saveWalks();state.current=null;renderArchive();openPanel('archiv');
-    // Export-Button anzeigen für den gerade gespeicherten Walk
-    const expBtn=document.getElementById('btnExportLast');
-    if(expBtn){
-      expBtn.style.display='block';
-      expBtn.onclick=()=>{
-        expBtn.style.display='none';
+    // Export-Banner im Archiv anzeigen
+    setTimeout(()=>{
+      const list=document.getElementById('archiveList');
+      if(!list) return;
+      const banner=document.createElement('div');
+      banner.style.cssText='background:#16a34a;color:#fff;border-radius:10px;padding:12px 14px;'
+        +'margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;';
+      banner.innerHTML='<span style="font-size:12px;font-weight:bold;">✅ Walk gespeichert!</span>'
+        +'<button style="padding:8px 14px;border-radius:8px;border:none;background:#fff;'
+        +'color:#16a34a;font-size:11px;font-weight:bold;cursor:pointer;">📦 Jetzt exportieren</button>';
+      banner.querySelector('button').onclick=()=>{
+        banner.remove();
         exportWalk(savedWalk);
       };
-    }
+      list.insertBefore(banner,list.firstChild);
+      // Banner nach 30 Sek. automatisch ausblenden
+      setTimeout(()=>{if(banner.parentNode)banner.remove();},30000);
+    },300);
   };
 
   function saveWalks(){
@@ -1671,8 +1722,7 @@ window.addEventListener('load', function() {
       const quickRow=document.createElement('div');
       quickRow.style.cssText='display:flex;gap:4px;padding:4px 8px 6px;align-items:center;';
       [{cls:'wb-verlauf',label:'📋 Reflexion',col:'#2563eb'},
-       {cls:'wb-analyse',label:'📊 Auswerten',col:'#16a34a'},
-       {cls:'wb-umap',label:'🗺 uMap',col:'#2563eb'}
+       {cls:'wb-analyse',label:'📊 Auswerten',col:'#16a34a'}
       ].forEach(({cls,label,col})=>{
         const btn=document.createElement('button');
         btn.setAttribute('data-cls',cls);
@@ -1722,7 +1772,6 @@ window.addEventListener('load', function() {
       // Button-Handler
       quickRow.querySelector('[data-cls="wb-verlauf"]').onclick=()=>openVerlauf(w);
       quickRow.querySelector('[data-cls="wb-analyse"]').onclick=()=>openAnalyse(w);
-      quickRow.querySelector('[data-cls="wb-umap"]').onclick=()=>openUmapModal(w);
       actions.querySelector('.wb-save').onclick=()=>{
         const n=nameInput.value.trim();if(!n)return;
         w.name=n;header.querySelector('.walk-label').firstChild.textContent=n;saveWalks();
