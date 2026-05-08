@@ -199,6 +199,7 @@
 <div id="topBar">
   <button id="btnStart" class="btn btn-blue">START</button>
   <button id="btnStop" class="btn btn-red">STOP / SAVE</button>
+  <button id="btnExportLast" class="btn" style="background:#16a34a;color:#fff;display:none;">📦 Export</button>
 </div>
 <div id="panelToggles">
   <button class="panel-tab" data-panel="ansicht">🗺 Ansicht</button>
@@ -213,7 +214,7 @@
   <div id="drawerBody">
     <div class="section" id="sec-ansicht" style="display:none;">
       <div class="section-label">Kartenansicht</div>
-      <button class="layer-opt" data-url="https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/{z}/{x}/{y}.png?key=kIVeCJrwqaa77bZoYoEF" data-tms="true">✦ Eigene Karte</button>
+      <button class="layer-opt" data-url="maptiler-vector" data-style="https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/style.json?key=kIVeCJrwqaa77bZoYoEF">✦ Eigene Karte</button>
       <button class="layer-opt active" data-url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png">Standard</button>
       <button class="layer-opt" data-url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}">Satellit</button>
       <button class="layer-opt" data-url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png">Graustufen</button>
@@ -412,10 +413,60 @@ window.addEventListener('load', function() {
         btn.classList.add('active');
         return;
       }
-      const url=btn.getAttribute('data-url');currentTileUrl=url;
+      const url=btn.getAttribute('data-url');
+      const style=btn.getAttribute('data-style');
+      document.querySelectorAll('.layer-opt').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // MapTiler Vector Stil via maplibre-gl-leaflet
+      if(url==='maptiler-vector'){
+        state.map.removeLayer(state.currentTile);
+        // Lade MapLibre GL Leaflet Plugin wenn nötig
+        function loadMaptilerStyle(){
+          if(window.maplibregl&&window.MaplibreglLeaflet){
+            applyVectorStyle(style);
+          } else {
+            // Lade maplibre-gl
+            if(!window.maplibregl){
+              const lnk=document.createElement('link');
+              lnk.rel='stylesheet';lnk.href='https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.css';
+              document.head.appendChild(lnk);
+              const scr=document.createElement('script');
+              scr.src='https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.js';
+              scr.onload=()=>{
+                const scr2=document.createElement('script');
+                scr2.src='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js';
+                scr2.onload=()=>applyVectorStyle(style);
+                document.head.appendChild(scr2);
+              };
+              document.head.appendChild(scr);
+            } else {
+              const scr2=document.createElement('script');
+              scr2.src='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js';
+              scr2.onload=()=>applyVectorStyle(style);
+              document.head.appendChild(scr2);
+            }
+          }
+        }
+        function applyVectorStyle(styleUrl){
+          try{
+            state.currentTile=L.maplibreGL({style:styleUrl,attribution:'© MapTiler © OpenStreetMap'}).addTo(state.map);
+            currentTileUrl='maptiler-vector';
+          }catch(err){
+            console.error('MapLibre GL Leaflet error:',err);
+            // Fallback auf Raster
+            const fallback='https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=kIVeCJrwqaa77bZoYoEF';
+            state.currentTile=L.tileLayer(fallback,{crossOrigin:true,maxZoom:22,maxNativeZoom:19}).addTo(state.map);
+          }
+        }
+        loadMaptilerStyle();
+        return;
+      }
+
+      // Standard Raster Tile
+      currentTileUrl=url;
       state.map.removeLayer(state.currentTile);
       state.currentTile=L.tileLayer(url,{crossOrigin:true,maxZoom:22,maxNativeZoom:19}).addTo(state.map);
-      document.querySelectorAll('.layer-opt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
     };
   });
 
@@ -453,9 +504,14 @@ window.addEventListener('load', function() {
       style:'https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/style.json?key=kIVeCJrwqaa77bZoYoEF',
       center:[center.lng,center.lat],
       zoom:15,
-      pitch:45,
-      bearing:0,
+      pitch:60,
+      bearing:-20,
       antialias:true
+    });
+    map3dInstance.on('load',()=>{
+      map3dInstance.addSource('terrain',{type:'raster-dem',url:'https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=kIVeCJrwqaa77bZoYoEF',tileSize:256});
+      map3dInstance.setTerrain({source:'terrain',exaggeration:2.5});
+      map3dInstance.setSky({'sky-color':'#a8c8e8','sky-horizon-blend':0.4,'horizon-color':'#dceaf5','horizon-fog-blend':0.15,'fog-color':'#c8dcea','fog-ground-blend':0.4});
     });
     map3dInstance.on('load',()=>{
       map3dInstance.addSource('terrain',{type:'raster-dem',url:'https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=kIVeCJrwqaa77bZoYoEF',tileSize:256});
@@ -657,7 +713,18 @@ window.addEventListener('load', function() {
     inkLayer.clearSegments();
     Object.keys(mapLayers).forEach(k=>{mapLayers[k].forEach(l=>{try{state.map.removeLayer(l);}catch(e){}});mapLayers[k]=[];});
     if(!state.current.reflection)state.current.reflection={frei:'',moodRetro:3,moment:'',orte:'',nicht:'',ueber:''};
-    releaseWakeLock();    state.walks.push(state.current);saveWalks();state.current=null;renderArchive();openPanel('archiv');
+    releaseWakeLock();
+    const savedWalk=state.current;
+    state.walks.push(state.current);saveWalks();state.current=null;renderArchive();openPanel('archiv');
+    // Export-Button anzeigen für den gerade gespeicherten Walk
+    const expBtn=document.getElementById('btnExportLast');
+    if(expBtn){
+      expBtn.style.display='block';
+      expBtn.onclick=()=>{
+        expBtn.style.display='none';
+        exportWalk(savedWalk);
+      };
+    }
   };
 
   function saveWalks(){
@@ -2106,29 +2173,15 @@ window.addEventListener('load', function() {
 <div id="umapModal" style="display:none;position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:16px;width:min(94vw,440px);padding:24px;display:flex;flex-direction:column;gap:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:14px;font-weight:bold;color:#111;">🗺 Zur Forschungskarte exportieren</div>
+      <div style="font-size:14px;font-weight:bold;color:#111;">🗺 GeoJSON exportieren</div>
       <button id="umapClose" style="border:none;background:#f0f0f0;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;">✕</button>
     </div>
-    <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;font-size:11px;color:#1e3a6e;line-height:1.7;">
-      <b>So geht's:</b><br>
-      1. Tippe auf "GeoJSON herunterladen"<br>
-      2. Öffne die <b>Forschungskarte</b> (Button unten)<br>
-      3. Klicke auf <b>Bearbeiten</b> (Stift oben rechts)<br>
-      4. Klicke auf <b>Daten importieren</b> (↑ Symbol)<br>
-      5. Wähle die heruntergeladene <b>_umap.geojson</b><br>
-      6. Format: GeoJSON → <b>Importieren</b>
+    <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:12px;color:#1e3a6e;line-height:1.7;">
+      Enthält Route + alle Einträge (Stimmung, Gedanken, Wahrnehmung, Fotos) — bereit zum Import in uMap.
     </div>
-    <div style="background:#f0fdf4;border-radius:10px;padding:8px 12px;font-size:10px;color:#166534;line-height:1.6;">
-      ✅ Alle Ebenen (Stimmung, Gedanken, Fotos...) werden automatisch getrennt.<br>
-      ✅ Antippen eines Markers zeigt Text, Foto und Audio direkt an.<br>
-      ✅ Die Route erscheint als farbige Linie.
-    </div>
-    <button id="umapDownloadBtn" style="width:100%;padding:13px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:bold;cursor:pointer;">📥 GeoJSON herunterladen</button>
-    <a id="umapOpenLink" href="https://umap.openstreetmap.de/de/map/begleitinstrument-kartierung_132744" target="_blank" style="width:100%;padding:13px;border-radius:10px;border:1.5px solid #2563eb;background:#fff;color:#2563eb;font-size:13px;font-weight:bold;cursor:pointer;text-align:center;text-decoration:none;display:block;">🔗 Zur Forschungskarte öffnen</a>
-    <div style="font-size:10px;color:#9ca3af;text-align:center;">Fotos sind in der GeoJSON eingebettet · Audio wenn als Base64 gespeichert</div>
+    <button id="umapDownloadBtn" style="width:100%;padding:14px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:bold;cursor:pointer;-webkit-tap-highlight-color:transparent;">📥 GeoJSON herunterladen</button>
   </div>
 </div>
-
 <!-- VERGLEICH-VOLLBILD -->
 <div id="vglOverlay" style="display:none;position:fixed;inset:0;z-index:5000;background:#f0ede8;flex-direction:column;overflow:hidden;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;flex-shrink:0;border-bottom:1px solid #e5e5e5;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
