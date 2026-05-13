@@ -205,6 +205,7 @@
   <button class="panel-tab" data-panel="ansicht">🗺 Ansicht</button>
   <button class="panel-tab" data-panel="ebenen">☰ Ebenen</button>
   <button class="panel-tab" data-panel="archiv">📂 Archiv</button>
+  <button class="panel-tab" id="btnHelp" style="background:#f5f0e8;color:#555;">❓ Hilfe</button>
 </div>
 <div id="drawer">
   <div id="drawerHeader">
@@ -2317,8 +2318,9 @@ window.addEventListener('load', function() {
       dHint.innerHTML='Stelle die automatische Sperre auf die längste verfügbare Zeit.';
     }
 
-    // Onboarding anzeigen wenn noch nicht gesehen
-    if(!localStorage.getItem('ob_done')){
+    // Onboarding anzeigen — Version-Key damit neue Version immer erscheint
+    const OB_VERSION='v3';
+    if(localStorage.getItem('ob_done')!==OB_VERSION){
       document.getElementById('onboardingModal').style.display='flex';
     }
 
@@ -2347,10 +2349,13 @@ window.addEventListener('load', function() {
 
     function closeOnboarding(){
       document.getElementById('onboardingModal').style.display='none';
-      localStorage.setItem('ob_done','1');
+      localStorage.setItem('ob_done',OB_VERSION);
     }
   }
   initOnboarding();
+  document.getElementById('btnHelp').onclick=()=>{
+    document.getElementById('onboardingModal').style.display='flex';
+  };
 
   renderArchive();
 });
