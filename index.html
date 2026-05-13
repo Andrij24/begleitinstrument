@@ -385,7 +385,36 @@ window.addEventListener('load', function() {
   let currentTileUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   state.map=L.map('map',{zoomControl:false,maxZoom:22}).setView([47.23,9.61],17);
-  state.currentTile=L.tileLayer(currentTileUrl,{crossOrigin:true,maxZoom:22,maxNativeZoom:19}).addTo(state.map);
+  // Direkt eigene MapTiler-Karte laden
+  currentTileUrl='maptiler-vector';
+  // Temporär OSM bis MapLibre geladen ist
+  state.currentTile=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{crossOrigin:true,maxZoom:22,maxNativeZoom:19}).addTo(state.map);
+  // Eigene Karte nachladen sobald MapLibre verfügbar
+  (function loadDefaultStyle(){
+    const lnk=document.createElement('link');
+    lnk.rel='stylesheet';lnk.href='https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.css';
+    document.head.appendChild(lnk);
+    const scr=document.createElement('script');
+    scr.src='https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.js';
+    scr.onload=()=>{
+      const scr2=document.createElement('script');
+      scr2.src='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js';
+      scr2.onload=()=>{
+        try{
+          state.map.removeLayer(state.currentTile);
+          state.currentTile=L.maplibreGL({
+            style:'https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/style.json?key=kIVeCJrwqaa77bZoYoEF',
+            attribution:'© MapTiler © OpenStreetMap'
+          }).addTo(state.map);
+          // Aktiven Button aktualisieren
+          document.querySelectorAll('.layer-opt').forEach(b=>b.classList.remove('active'));
+          document.querySelector('.layer-opt[data-url="maptiler-vector"]')?.classList.add('active');
+        }catch(err){console.error('MapLibre init error:',err);}
+      };
+      document.head.appendChild(scr2);
+    };
+    document.head.appendChild(scr);
+  })();
 
   const drawer=document.getElementById('drawer');
   const drawerTitle=document.getElementById('drawerTitle');
@@ -514,42 +543,145 @@ window.addEventListener('load', function() {
       map3dInstance.setTerrain({source:'terrain',exaggeration:2.5});
       map3dInstance.setSky({'sky-color':'#a8c8e8','sky-horizon-blend':0.4,'horizon-color':'#dceaf5','horizon-fog-blend':0.15,'fog-color':'#c8dcea','fog-ground-blend':0.4});
 
-      // Gespeicherte Walks als Linien einzeichnen
+      // 3D Gebäude — funktioniert mit allen MapTiler-Stilen
+      // MapTiler nennt den Building-Layer je nach Stil unterschiedlich
+      // Wir versuchen alle gängigen Namen
+      const buildingLayerNames=['building','building-3d','buildings','building-extrusion','3d-buildings'];
+      let buildingLayerFound=false;
+      buildingLayerNames.forEach(layerName=>{
+        if(!buildingLayerFound&&map3dInstance.getLayer(layerName)){
+          buildingLayerFound=true;
+          try{
+            map3dInstance.setPaintProperty(layerName,'fill-extrusion-height',
+              ['interpolate',['linear'],['zoom'],14,0,16,['get','height'],18,['*',['get','height'],1.2]]);
+            map3dInstance.setPaintProperty(layerName,'fill-extrusion-base',['get','min_height']);
+            map3dInstance.setPaintProperty(layerName,'fill-extrusion-opacity',0.85);
+          }catch(err){console.log('Building layer error:',err);}
+        }
+      });
+      // Falls kein Building-Layer gefunden: eigenen hinzufügen
+      if(!buildingLayerFound){
+        // Füge 3D-Gebäude aus OSM-Daten hinzu (falls im Stil vorhanden)
+        const allLayers=map3dInstance.getStyle().layers||[];
+        allLayers.forEach(layer=>{
+          if(layer.id&&(layer.id.includes('build')||layer.id.includes('Build'))){
+            console.log('Found building layer:',layer.id,layer.type);
+            if(layer.type==='fill-extrusion'){
+              buildingLayerFound=true;
+              try{
+                map3dInstance.setPaintProperty(layer.id,'fill-extrusion-height',
+                  ['interpolate',['linear'],['zoom'],14,0,16,['get','height']]);
+                map3dInstance.setPaintProperty(layer.id,'fill-extrusion-opacity',0.85);
+              }catch(err){}
+            } else if(layer.type==='fill'){
+              // Konvertiere fill zu fill-extrusion
+              const src=layer.source;
+              const srcLayer=layer['source-layer'];
+              if(src&&srcLayer&&!buildingLayerFound){
+                buildingLayerFound=true;
+                map3dInstance.addLayer({
+                  id:'custom-3d-buildings',
+                  type:'fill-extrusion',
+                  source:src,
+                  'source-layer':srcLayer,
+                  filter:['==',['get','extrude'],'true'],
+                  paint:{
+                    'fill-extrusion-color':'#d4cfc9',
+                    'fill-extrusion-height':['interpolate',['linear'],['zoom'],14,0,16,['get','height']],
+                    'fill-extrusion-base':['get','min_height'],
+                    'fill-extrusion-opacity':0.8
+                  }
+                },layer.id);
+              }
+            }
+          }
+        });
+      }
+
+      // Gespeicherte Walks als Tusche-Linien einzeichnen
       state.walks.forEach((walk,wi)=>{
         if(!walk.route||walk.route.length<2) return;
         const srcId='walk-'+walk.id;
-        map3dInstance.addSource(srcId,{
-          type:'geojson',
-          data:{type:'Feature',geometry:{type:'LineString',
-            coordinates:walk.route.map(p=>[p[1],p[0]])}}
-        });
+        const segs=walk.segments||[];
+
+        // GeoJSON mit Segment-Eigenschaften (Gewicht/Opacity)
+        const segFeatures=segs.length>0
+          ? segs.filter(s=>s.ll1&&s.ll2).map(s=>({
+              type:'Feature',
+              geometry:{type:'LineString',coordinates:[[s.ll2[1],s.ll2[0]],[s.ll1[1],s.ll1[0]]]},
+              properties:{w:Math.max(1,Math.min(20,s.weight)),op:Math.max(0.15,Math.min(1,s.opacity))}
+            }))
+          : [{type:'Feature',
+              geometry:{type:'LineString',coordinates:walk.route.map(p=>[p[1],p[0]])},
+              properties:{w:5,op:0.75}}];
+
+        map3dInstance.addSource(srcId,{type:'geojson',data:{type:'FeatureCollection',features:segFeatures}});
+
+        // Äußere weiche Schicht (Tuscherand)
         map3dInstance.addLayer({
-          id:srcId+'-line',
-          type:'line',
-          source:srcId,
+          id:srcId+'-outer',type:'line',source:srcId,
           layout:{'line-join':'round','line-cap':'round'},
           paint:{
-            'line-color':walk.color||'#e6194b',
-            'line-width':['interpolate',['linear'],['zoom'],12,2,16,5,19,9],
-            'line-opacity':0.85
+            'line-color':'rgba(16,10,4,0.18)',
+            'line-width':['interpolate',['linear'],['zoom'],
+              12,['*',['get','w'],0.8],
+              16,['*',['get','w'],1.4],
+              19,['*',['get','w'],2.2]],
+            'line-blur':2
           }
         });
-        // Eintrags-Marker
+        // Mittlere Schicht
+        map3dInstance.addLayer({
+          id:srcId+'-mid',type:'line',source:srcId,
+          layout:{'line-join':'round','line-cap':'round'},
+          paint:{
+            'line-color':'rgba(16,10,4,0.55)',
+            'line-width':['interpolate',['linear'],['zoom'],
+              12,['*',['get','w'],0.5],
+              16,['*',['get','w'],0.9],
+              19,['*',['get','w'],1.5]],
+            'line-blur':0.5
+          }
+        });
+        // Innere dunkle Kern-Linie
+        map3dInstance.addLayer({
+          id:srcId+'-line',type:'line',source:srcId,
+          layout:{'line-join':'round','line-cap':'round'},
+          paint:{
+            'line-color':'rgba(10,6,2,0.88)',
+            'line-width':['interpolate',['linear'],['zoom'],
+              12,['*',['get','w'],0.25],
+              16,['*',['get','w'],0.5],
+              19,['*',['get','w'],0.85]],
+            'line-opacity':['get','op']
+          }
+        });
+
+        // Eintrags-Marker mit Farbe nach Typ
+        const TC={mood:'#ea580c',thought:'#1e3a6e',sense:'#16a34a',voice:'#7c3aed',sound:'#7c3aed',photo:'#374151'};
         const points=walk.entries.filter(e=>e.location).map(e=>({
           type:'Feature',
           geometry:{type:'Point',coordinates:[e.location.lng,e.location.lat]},
-          properties:{type:e.type,mood:e.moodValue||''}
+          properties:{col:TC[e.type]||walk.color||'#e6194b',r:e.type==='mood'?8:5}
         }));
         if(points.length>0){
           map3dInstance.addSource(srcId+'-pts',{type:'geojson',data:{type:'FeatureCollection',features:points}});
+          // Weißer Rand
+          map3dInstance.addLayer({
+            id:srcId+'-pts-border',type:'circle',source:srcId+'-pts',
+            paint:{
+              'circle-radius':['interpolate',['linear'],['zoom'],12,['get','r'],16,['*',['get','r'],1.6],19,['*',['get','r'],2.5]],
+              'circle-color':'#fff',
+              'circle-opacity':0.95
+            }
+          });
+          // Farbiger Kern
           map3dInstance.addLayer({
             id:srcId+'-pts-layer',type:'circle',source:srcId+'-pts',
             paint:{
-              'circle-radius':['interpolate',['linear'],['zoom'],12,3,16,7,19,12],
-              'circle-color':walk.color||'#e6194b',
-              'circle-stroke-color':'#fff',
-              'circle-stroke-width':1.5,
-              'circle-opacity':0.9
+              'circle-radius':['interpolate',['linear'],['zoom'],12,['*',['get','r'],0.7],16,['*',['get','r'],1.2],19,['*',['get','r'],2]],
+              'circle-color':['get','col'],
+              'circle-opacity':0.95
             }
           });
         }
@@ -690,7 +822,8 @@ window.addEventListener('load', function() {
     const ll=[smoothLat,smoothLng],now=Date.now();
     if(!state.liveMarker){
       state.liveMarker=L.circleMarker(ll,{radius:6,fillColor:'#111',color:'#fff',weight:2,fillOpacity:1,zIndexOffset:1000}).addTo(state.map);
-      state.map.setView(ll,17);
+      // Sofort auf GPS-Position zentrieren
+      state.map.setView(ll,17,{animate:true,duration:1.0});
     } else {
       state.liveMarker.setLatLng(ll);
     }
@@ -1026,9 +1159,52 @@ window.addEventListener('load', function() {
     verlaufMap.zoomControl.setPosition('bottomright');
 
     // Graustufen-Karte
-    L.tileLayer('https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/{z}/{x}/{y}.png?key=kIVeCJrwqaa77bZoYoEF',{
-      maxZoom:22, maxNativeZoom:20, tileSize:256, crossOrigin:true
-    }).addTo(verlaufMap);
+    // MapTiler Stil via MapLibre GL Leaflet (gleich wie Hauptkarte)
+    if(window.maplibregl && window.MaplibreglLeaflet || window.L.maplibreGL){
+      try{
+        L.maplibreGL({
+          style:'https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/style.json?key=kIVeCJrwqaa77bZoYoEF',
+          attribution:'© MapTiler © OpenStreetMap'
+        }).addTo(verlaufMap);
+      }catch(err){
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(verlaufMap);
+      }
+    } else {
+      // MapLibre noch nicht geladen — OSM als Fallback, dann nachladen
+      const refTile=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(verlaufMap);
+      if(!window.maplibregl){
+        const scr=document.createElement('script');
+        scr.src='https://unpkg.com/maplibre-gl@3/dist/maplibre-gl.js';
+        scr.onload=()=>{
+          const scr2=document.createElement('script');
+          scr2.src='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js';
+          scr2.onload=()=>{
+            try{
+              verlaufMap.removeLayer(refTile);
+              L.maplibreGL({
+                style:'https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/style.json?key=kIVeCJrwqaa77bZoYoEF',
+                attribution:'© MapTiler © OpenStreetMap'
+              }).addTo(verlaufMap);
+            }catch(e){}
+          };
+          document.head.appendChild(scr2);
+        };
+        document.head.appendChild(scr);
+      } else {
+        const scr2=document.createElement('script');
+        scr2.src='https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js';
+        scr2.onload=()=>{
+          try{
+            verlaufMap.removeLayer(refTile);
+            L.maplibreGL({
+              style:'https://api.maptiler.com/maps/019e02c9-c89f-7ac4-a445-8682af45becc/style.json?key=kIVeCJrwqaa77bZoYoEF',
+              attribution:'© MapTiler © OpenStreetMap'
+            }).addTo(verlaufMap);
+          }catch(e){}
+        };
+        document.head.appendChild(scr2);
+      }
+    }
 
     // ── Tuschlinie: gespeicherte Segmente direkt übernehmen ──
     // walk.segments enthält ll1, ll2, weight, opacity — exakt wie auf der Hauptkarte
