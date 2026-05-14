@@ -2299,10 +2299,10 @@ window.addEventListener('load', function() {
     const hint=document.getElementById('ob-device-hint');
     if(isIOS){
       hint.style.cssText='background:#fef3c7;border-radius:10px;padding:12px 14px;font-size:11px;color:#92400e;line-height:1.7;border-left:4px solid #f59e0b;';
-      hint.innerHTML='<b>📱 iPhone erkannt:</b><br>Verwende am besten <b>Safari</b> als Browser. Erlaube unter Einstellungen → Safari → Standort den Zugriff.';
+      hint.innerHTML='<b>📱 iPhone erkannt:</b><br>Verwende <b>Safari</b> als Browser. Erlaube unter Einstellungen → Safari → Standort den Zugriff.';
     } else if(isAndroid){
       hint.style.cssText='background:#ecfdf5;border-radius:10px;padding:12px 14px;font-size:11px;color:#065f46;line-height:1.7;border-left:4px solid #10b981;';
-      hint.innerHTML='<b>🤖 Android erkannt:</b><br>Verwende am besten <b>Chrome</b> als Browser. Wähle bei der Standort-Abfrage <b>"Immer erlauben"</b>.';
+      hint.innerHTML='<b>🤖 Android erkannt:</b><br>Verwende <b>Chrome</b> als Browser. Wähle bei der Standort-Abfrage <b>"Immer erlauben"</b>.';
     } else {
       hint.style.cssText='background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;';
       hint.innerHTML='<b>💡 Tipp:</b><br>Auf dem Handy: iPhone → Safari, Android → Chrome verwenden.';
@@ -2311,7 +2311,7 @@ window.addEventListener('load', function() {
     // Display-Hinweis Schritt 4
     const dHint=document.getElementById('ob-display-hint');
     if(isIOS){
-      dHint.innerHTML='<b>iPhone:</b> Einstellungen → Anzeige & Helligkeit → Automatische Sperre → <b>"Nie"</b><br>Nach dem Walk wieder zurücksetzen.';
+      dHint.innerHTML='<b>iPhone:</b> Einstellungen → Anzeige & Helligkeit → Automatische Sperre → <b>"Nie"</b><br>Nach dem Walk bitte zurücksetzen.';
     } else if(isAndroid){
       dHint.innerHTML='<b>Android:</b> Einstellungen → Anzeige → Ruhezustand/Sleep → <b>längste Zeit</b> wählen oder "Nie".<br>Energiesparmodus für die Testdauer deaktivieren.';
     } else {
@@ -2319,7 +2319,7 @@ window.addEventListener('load', function() {
     }
 
     // Onboarding anzeigen — Version-Key damit neue Version immer erscheint
-    const OB_VERSION='v4';
+    const OB_VERSION='v5';
     if(localStorage.getItem('ob_done')!==OB_VERSION){
       document.getElementById('onboardingModal').style.display='flex';
     }
