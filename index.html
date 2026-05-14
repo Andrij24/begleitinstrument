@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-  <title>Begleitinstrument PRO</title>
+  <title>Begleitinstrument</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
@@ -219,7 +219,7 @@
       <button class="layer-opt active" data-url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png">Standard</button>
       <button class="layer-opt" data-url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}">Satellit</button>
       <button class="layer-opt" data-url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png">Graustufen</button>
-      <button class="layer-opt" data-type="3d">🏔 3D Ansicht</button>
+      <button class="layer-opt" data-type="3d"> 3D Ansicht</button>
     </div>
     <div class="section" id="sec-ebenen" style="display:none;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
@@ -2299,10 +2299,10 @@ window.addEventListener('load', function() {
     const hint=document.getElementById('ob-device-hint');
     if(isIOS){
       hint.style.cssText='background:#fef3c7;border-radius:10px;padding:12px 14px;font-size:11px;color:#92400e;line-height:1.7;border-left:4px solid #f59e0b;';
-      hint.innerHTML='<b>📱 iPhone erkannt:</b><br>Verwende <b>Safari</b> als Browser. Erlaube unter Einstellungen → Safari → Standort den Zugriff.';
+      hint.innerHTML='<b>📱 iPhone erkannt:</b><br>Verwende am besten <b>Safari</b> als Browser. Erlaube unter Einstellungen → Safari → Standort den Zugriff.';
     } else if(isAndroid){
       hint.style.cssText='background:#ecfdf5;border-radius:10px;padding:12px 14px;font-size:11px;color:#065f46;line-height:1.7;border-left:4px solid #10b981;';
-      hint.innerHTML='<b>🤖 Android erkannt:</b><br>Verwende <b>Chrome</b> als Browser. Wähle bei der Standort-Abfrage <b>"Immer erlauben"</b>.';
+      hint.innerHTML='<b>🤖 Android erkannt:</b><br>Verwende am besten <b>Chrome</b> als Browser. Wähle bei der Standort-Abfrage <b>"Immer erlauben"</b>.';
     } else {
       hint.style.cssText='background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;';
       hint.innerHTML='<b>💡 Tipp:</b><br>Auf dem Handy: iPhone → Safari, Android → Chrome verwenden.';
@@ -2319,7 +2319,7 @@ window.addEventListener('load', function() {
     }
 
     // Onboarding anzeigen — Version-Key damit neue Version immer erscheint
-    const OB_VERSION='v3';
+    const OB_VERSION='v4';
     if(localStorage.getItem('ob_done')!==OB_VERSION){
       document.getElementById('onboardingModal').style.display='flex';
     }
@@ -2483,8 +2483,8 @@ window.addEventListener('load', function() {
     <!-- Header -->
     <div style="background:#111;border-radius:20px 20px 0 0;padding:20px 20px 16px;text-align:center;flex-shrink:0;">
       <div style="font-size:28px;margin-bottom:8px;">🖋</div>
-      <div style="font-size:16px;font-weight:bold;color:#fff;">Begleitinstrument PRO</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Psychogeografisches Walk-Aufzeichnungsinstrument</div>
+      <div style="font-size:16px;font-weight:bold;color:#fff;">Begleitinstrument</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Was passiert auf deinem Spaziergang?</div>
     </div>
 
     <!-- Schritte -->
@@ -2495,7 +2495,7 @@ window.addEventListener('load', function() {
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">📍</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Willkommen!</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese App begleitet dich bei einem Spaziergang und zeichnet auf was du erlebst — Route, Stimmung, Gedanken, Fotos und Sounds.</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese Webbasiert-App begleitet dich auf deinem Spaziergang und zeichnet auf was du erlebst — Route, Stimmung, Gedanken, Fotos und Sounds.</div>
         </div>
         <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;">
           <b>Bevor du startest:</b><br>
@@ -2518,7 +2518,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📸🎙💬👁💭🔋</span>
-            <div><b style="font-size:12px;">Aufzeichnen</b><br><span style="font-size:11px;color:#6b7280;">Die Buttons links: Foto, Sound, Sprache, Wahrnehmung, Gedanke, Stimmung.</span></div>
+            <div><b style="font-size:12px;">Aufzeichnen</b><br><span style="font-size:11px;color:#6b7280;">Die Buttons links: Foto, Umgebungssound, Sprachnachricht, Wahrnehmung, Gedanke, Stimmung.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">⏹️</span>
@@ -2536,7 +2536,7 @@ window.addEventListener('load', function() {
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📂</span>
-            <div><b style="font-size:12px;">Archiv öffnen</b><br><span style="font-size:11px;color:#6b7280;">Tippe oben rechts auf "Archiv" um deine Walks zu sehen.</span></div>
+            <div><b style="font-size:12px;">Archiv öffnen</b><br><span style="font-size:11px;color:#6b7280;">Tippe oben rechts auf "Archiv" und tippe auf einen Spaziergang um diesen auf der Map zu sehen.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📋</span>
@@ -2549,12 +2549,34 @@ window.addEventListener('load', function() {
         </div>
       </div>
 
-      <!-- Schritt 4 — Auswertung erklärt -->
+      <!-- Schritt 3b — Ansicht & Ebenen -->
       <div class="ob-step" data-step="3" style="display:none;flex-direction:column;gap:12px;">
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:40px;">🗺</div>
+          <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Ansicht & Ebenen</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
+            <span style="font-size:22px;">🗺</span>
+            <div><b style="font-size:12px;">Ansicht</b><br><span style="font-size:11px;color:#6b7280;">Wechsle zwischen deiner eigenen Karte, Standard, Satellit, Graustufen oder 3D-Ansicht.</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
+            <span style="font-size:22px;">☰</span>
+            <div><b style="font-size:12px;">Ebenen</b><br><span style="font-size:11px;color:#6b7280;">Zeigt Schrittzähler und Tempo. Einzelne Ebenen (Fotos, Sounds, Stimmung...) ein- und ausblenden.</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
+            <span style="font-size:22px;">🏔</span>
+            <div><b style="font-size:12px;">3D Ansicht</b><br><span style="font-size:11px;color:#6b7280;">Zeigt vergangene Spaziergänge als Tuschelinie in 3D mit echtem Geländemodell und Gebäuden.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schritt 4 — Auswertung erklärt -->
+      <div class="ob-step" data-step="4" style="display:none;flex-direction:column;gap:12px;">
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">📊</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Die Auswertung</div>
-          <div style="font-size:11px;color:#6b7280;margin-top:6px;line-height:1.6;">Zeigt die Lücke zwischen Erleben und Erinnern</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:6px;line-height:1.6;">Zeigt die Lücke zwischen den Erleben und Erinnern</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="background:#f0fdf4;border-radius:10px;padding:10px 12px;border-left:4px solid #1D9E75;">
@@ -2567,7 +2589,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="background:#fff7ed;border-radius:10px;padding:10px 12px;border-left:4px solid #f97316;">
             <div style="font-size:11px;font-weight:bold;color:#92400e;margin-bottom:4px;">Diskrepanz</div>
-            <div style="font-size:11px;color:#374151;line-height:1.6;">Die <b>Differenz</b> zwischen beiden — was hat das Gedächtnis verändert? Grün = Erinnerung besser, Rot = schlechter.</div>
+            <div style="font-size:11px;color:#374151;line-height:1.6;">Die <b>Differenz</b> zwischen beiden — wie wird der Spaziergang erinnert? Grün = Erinnerung besser, Rot = schlechter.</div>
           </div>
         </div>
         <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;font-size:10px;color:#1e3a6e;line-height:1.6;">
@@ -2576,7 +2598,7 @@ window.addEventListener('load', function() {
       </div>
 
       <!-- Schritt 5 — Vergleich & GeoJSON -->
-      <div class="ob-step" data-step="4" style="display:none;flex-direction:column;gap:12px;">
+      <div class="ob-step" data-step="5" style="display:none;flex-direction:column;gap:12px;">
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">⚖️</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Vergleichen & Auswerten</div>
@@ -2584,7 +2606,7 @@ window.addEventListener('load', function() {
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📊</span>
-            <div><b style="font-size:12px;">Auswerten</b><br><span style="font-size:11px;color:#6b7280;">Zeigt aufgezeichnete vs. erinnerte Stimmung und die Diskrepanz.</span></div>
+            <div><b style="font-size:12px;">Auswerten</b><br><span style="font-size:11px;color:#6b7280;">Zeigt aufgezeichnete vs. erinnerte Stimmung und die Abweichung.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">⚖️</span>
@@ -2592,13 +2614,13 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">🗺</span>
-            <div><b style="font-size:12px;">GeoJSON Export</b><br><span style="font-size:11px;color:#6b7280;">Exportiere deinen Walk für die Forschungskarte (über Archiv → Walk → 📦 Export).</span></div>
+            <div><b style="font-size:12px;">GeoJSON Export</b><br><span style="font-size:11px;color:#6b7280;">Exportiere deinen Walk (über Archiv → auf den Spaziergang drauf tippen → 📦 Export).</span></div>
           </div>
         </div>
       </div>
 
       <!-- Schritt 6 — Display aktiv halten -->
-      <div class="ob-step" data-step="5" style="display:none;flex-direction:column;gap:12px;">
+      <div class="ob-step" data-step="6" style="display:none;flex-direction:column;gap:12px;">
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">⚠️</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Wichtiger Hinweis</div>
@@ -2627,6 +2649,7 @@ window.addEventListener('load', function() {
         <div class="ob-dot" data-dot="3" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
         <div class="ob-dot" data-dot="4" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
         <div class="ob-dot" data-dot="5" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
+        <div class="ob-dot" data-dot="6" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
       </div>
       <button id="ob-skip" style="padding:8px 14px;border-radius:8px;border:none;background:#f0f0f0;color:#6b7280;font-size:11px;cursor:pointer;">Überspringen</button>
       <button id="ob-next" style="padding:10px 20px;border-radius:8px;border:none;background:#111;color:#fff;font-size:12px;font-weight:bold;cursor:pointer;">Weiter →</button>
