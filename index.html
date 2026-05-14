@@ -2360,6 +2360,12 @@ window.addEventListener('load', function() {
   initOnboarding();
   document.getElementById('btnHelp').onclick=()=>{
     document.getElementById('onboardingModal').style.display='flex';
+    // Zurück auf Schritt 1 setzen
+    document.querySelectorAll('.ob-step').forEach((s,i)=>s.style.display=i===0?'flex':'none');
+    document.querySelectorAll('.ob-dot').forEach((d,i)=>d.style.background=i===0?'#111':'#ddd');
+    document.getElementById('ob-next').textContent='Weiter →';
+    document.getElementById('ob-back').style.display='none';
+    document.getElementById('ob-skip').style.display='block';
   };
 
   renderArchive();
@@ -2489,7 +2495,7 @@ window.addEventListener('load', function() {
     <div style="background:#111;border-radius:20px 20px 0 0;padding:20px 20px 16px;text-align:center;flex-shrink:0;">
       <div style="font-size:28px;margin-bottom:8px;">🖋</div>
       <div style="font-size:16px;font-weight:bold;color:#fff;">Begleitinstrument</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Was erlebst du während deines Spazierganges?</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Was erlebst während deines Spazierganges?</div>
     </div>
 
     <!-- Schritte -->
@@ -2500,7 +2506,7 @@ window.addEventListener('load', function() {
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">📍</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Willkommen!</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese Webbasierte-App begleitet dich bei einem Spaziergang und zeichnet auf was du erlebst — Route, Stimmung, Gedanken, Fotos und Audio.</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese Webbasierte-App begleitet dich auf Spaziergängen und zeichnet auf was du während dessen erlebst — Route, Stimmung, Gedanken, Fotos und Audio.</div>
         </div>
         <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;">
           <b>Bevor du startest:</b><br>
@@ -2523,7 +2529,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📸🎙💬👁💭🔋</span>
-            <div><b style="font-size:12px;">Aufzeichnen</b><br><span style="font-size:11px;color:#6b7280;">Die Buttons links: 📸 Foto, 🎙 Umgebungssound, 💬 Sprachnachricht, 👁 Wahrnehmung, 💭 Gedanke, 🔋 Stimmung.</span></div>
+            <div><b style="font-size:12px;">Aufzeichnen</b><br><span style="font-size:11px;color:#6b7280;">Die Buttons links: 📸 Foto, 🎙 Umgebungssound,💬 Sprachnachricht,👁 Wahrnehmung, 💭 Gedanke, 🔋 Stimmung.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">⏹️</span>
@@ -2571,7 +2577,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">🏔</span>
-            <div><b style="font-size:12px;">3D Ansicht</b><br><span style="font-size:11px;color:#6b7280;">Zeigt vergangene Spaziergänge als Tuschelinie in 3D mit echtem Geländemodell und Gebäuden.</span></div>
+            <div><b style="font-size:12px;">3D Ansicht</b><br><span style="font-size:11px;color:#6b7280;">Zeigt echte Geländemodelle und Gebäude.</span></div>
           </div>
         </div>
       </div>
