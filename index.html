@@ -2319,7 +2319,7 @@ window.addEventListener('load', function() {
     }
 
     // Onboarding anzeigen — Version-Key damit neue Version immer erscheint
-    const OB_VERSION='v7';
+    const OB_VERSION='v8';
     if(localStorage.getItem('ob_done')!==OB_VERSION){
       document.getElementById('onboardingModal').style.display='flex';
     }
@@ -2506,7 +2506,7 @@ window.addEventListener('load', function() {
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">📍</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Willkommen!</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese Webbasierte-App begleitet dich auf Spaziergängen und zeichnet auf was du während dessen erlebst — Route, Stimmung, Gedanken, Fotos und Audio.</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese Webbasierte-App begleitet dich bei einem Spaziergang und zeichnet auf was du erlebst — Route, Stimmung, Gedanken, Fotos und Audio.</div>
         </div>
         <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;">
           <b>Bevor du startest:</b><br>
@@ -2529,7 +2529,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📸🎙💬👁💭🔋</span>
-            <div><b style="font-size:12px;">Aufzeichnen</b><br><span style="font-size:11px;color:#6b7280;">Die Buttons links: 📸 Foto, 🎙 Umgebungssound,💬 Sprachnachricht,👁 Wahrnehmung, 💭 Gedanke, 🔋 Stimmung.</span></div>
+            <div><b style="font-size:12px;">Aufzeichnen</b><br><span style="font-size:11px;color:#6b7280;">Die Buttons links:📸 Foto,🎙 Umgebungssound,💬 Sprachnachricht,👁 Wahrnehmung, 💭 Gedanke, 🔋 Stimmung.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">⏹️</span>
@@ -2547,7 +2547,7 @@ window.addEventListener('load', function() {
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📂</span>
-            <div><b style="font-size:12px;">Archiv öffnen</b><br><span style="font-size:11px;color:#6b7280;">Tippe oben rechts auf "Archiv" um deine Walks auf der Map zu sehen sowie Umzubenennen, zu Exportieren und zu Löschen.</span></div>
+            <div><b style="font-size:12px;">Archiv öffnen</b><br><span style="font-size:11px;color:#6b7280;">Tippe oben rechts auf "Archiv" um deine Walks auf der Map zu sehen sowie Ubzubenennen, zu Exportieren und zu Löschen.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📋</span>
@@ -2556,6 +2556,12 @@ window.addEventListener('load', function() {
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📦</span>
             <div><b style="font-size:12px;">Export</b><br><span style="font-size:11px;color:#6b7280;">Exportiere deinen Walk als ZIP — alle Daten, Fotos und Audio.</span></div>
+          </div>
+          <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;font-size:11px;color:#1e3a6e;line-height:1.8;">
+            <b>Wo findest du den Export?</b><br>
+            Archiv → Walk antippen → Aktionen aufklappen → <b>📦 Export</b><br><br>
+            📱 <b>iPhone:</b> Die ZIP-Datei landet in <b>Dateien → Downloads</b>. Von dort per AirDrop oder Mail senden.<br>
+            🤖 <b>Android:</b> Die ZIP-Datei landet im <b>Downloads-Ordner</b>. Von dort per WhatsApp oder Mail senden.
           </div>
         </div>
       </div>
@@ -2577,7 +2583,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">🏔</span>
-            <div><b style="font-size:12px;">3D Ansicht</b><br><span style="font-size:11px;color:#6b7280;">Zeigt echte Geländemodelle und Gebäude.</span></div>
+            <div><b style="font-size:12px;">3D Ansicht</b><br><span style="font-size:11px;color:#6b7280;">Zeigt vergangene Spaziergänge als Tuschelinie in 3D mit echtem Geländemodell und Gebäuden.</span></div>
           </div>
         </div>
       </div>
@@ -2645,6 +2651,14 @@ window.addEventListener('load', function() {
           ✅ Gehe ins Freie — GPS funktioniert drinnen schlecht<br>
           ✅ Warte nach START bis der blaue Punkt erscheint<br>
           ✅ Exportiere nach dem Walk um alles zu sichern
+        </div>
+        <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.8;">
+          <b>📦 Export nach dem Walk:</b><br>
+          Archiv → Walk antippen → <b>📦 Export</b><br><br>
+          📱 <b>iPhone:</b> ZIP landet in <b>Dateien → Downloads</b><br>
+          Weiterleiten per AirDrop, Mail oder iCloud<br><br>
+          🤖 <b>Android:</b> ZIP landet im <b>Downloads-Ordner</b><br>
+          Weiterleiten per WhatsApp, Mail oder Google Drive
         </div>
       </div>
 
