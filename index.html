@@ -2290,6 +2290,19 @@ window.addEventListener('load', function() {
   }
 
   // ── ONBOARDING ──
+  let obCurrentStep=0;
+  let obSteps=null, obDots=null, obTotal=0;
+
+  function goToStep(n){
+    if(!obSteps) return;
+    obSteps.forEach((s,i)=>s.style.display=i===n?'flex':'none');
+    obDots.forEach((d,i)=>d.style.background=i===n?'#111':'#ddd');
+    document.getElementById('ob-next').textContent=n===obTotal-1?'Starten ✓':'Weiter →';
+    document.getElementById('ob-back').style.display=n>0?'block':'none';
+    document.getElementById('ob-skip').style.display=n===obTotal-1?'none':'block';
+    obCurrentStep=n;
+  }
+
   function initOnboarding(){
     // Gerät erkennen
     const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
@@ -2360,12 +2373,7 @@ window.addEventListener('load', function() {
   initOnboarding();
   document.getElementById('btnHelp').onclick=()=>{
     document.getElementById('onboardingModal').style.display='flex';
-    // Zurück auf Schritt 1 setzen
-    document.querySelectorAll('.ob-step').forEach((s,i)=>s.style.display=i===0?'flex':'none');
-    document.querySelectorAll('.ob-dot').forEach((d,i)=>d.style.background=i===0?'#111':'#ddd');
-    document.getElementById('ob-next').textContent='Weiter →';
-    document.getElementById('ob-back').style.display='none';
-    document.getElementById('ob-skip').style.display='block';
+    goToStep(0);
   };
 
   renderArchive();
