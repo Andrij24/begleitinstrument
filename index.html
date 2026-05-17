@@ -112,23 +112,35 @@
       border-radius: 26px;
       border: 1px solid rgba(255,255,255,0.95);
       box-shadow: 0 8px 40px rgba(0,0,0,0.13), 0 1px 0 rgba(255,255,255,0.85) inset, 0 0 0 0.5px rgba(0,0,0,0.06);
-      padding: 10px 8px;
+      padding: 10px 6px;
     }
     .fab {
       position: relative;
-      width: 46px;
-      height: 46px;
+      width: 52px;
+      height: 52px;
       border-radius: 15px;
       border: none;
       cursor: pointer;
       font-size: 20px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 1px;
       background: transparent;
       color: #1a1a1a;
       transition: background 0.13s ease, transform 0.1s ease;
       -webkit-tap-highlight-color: transparent;
+    }
+    .fab-lbl {
+      font-size: 7px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+      letter-spacing: 0.1px;
+      line-height: 1;
+      text-transform: uppercase;
+      pointer-events: none;
+      white-space: nowrap;
     }
     .fab:hover { background: rgba(0,0,0,0.06); transform: scale(1.1); }
     .fab:active { transform: scale(0.91); background: rgba(0,0,0,0.1); }
@@ -260,14 +272,14 @@
 
 <!-- MODERNES FAB-PANEL — Reihenfolge: Foto, Sound, Sprache, Wahrnehmung, Gedanke, Stimmung -->
 <div id="fabGrid">
-  <button id="fabPhoto"   class="fab" data-label="Foto aufnehmen">📸</button>
-  <button id="fabSound"   class="fab" data-label="Umgebungssound">🎙</button>
-  <button id="fabMsg"     class="fab" data-label="Sprachnachricht">💬</button>
+  <button id="fabPhoto"   class="fab" data-label="Foto aufnehmen">📸<span class="fab-lbl">Foto</span></button>
+  <button id="fabSound"   class="fab" data-label="Umgebungssound">🎙<span class="fab-lbl">Sound</span></button>
+  <button id="fabMsg"     class="fab" data-label="Sprachnachricht">💬<span class="fab-lbl">Sprache</span></button>
   <div class="fab-divider"></div>
-  <button id="fabSense"   class="fab" data-label="Wahrnehmung">👁</button>
-  <button id="fabThought" class="fab" data-label="Gedanke">💭</button>
+  <button id="fabSense"   class="fab" data-label="Wahrnehmung">👁<span class="fab-lbl">Wahrnehm.</span></button>
+  <button id="fabThought" class="fab" data-label="Gedanke">💭<span class="fab-lbl">Gedanke</span></button>
   <div class="fab-divider"></div>
-  <button id="fabMood"    class="fab" data-label="Stimmung">🔋</button>
+  <button id="fabMood"    class="fab" data-label="Stimmung">🔋<span class="fab-lbl">Stimmung</span></button>
 </div>
 
 <div id="cameraModal">
@@ -2437,63 +2449,10 @@ window.addEventListener('load', function() {
     goToStep(0);
   };
 
-  // ── Wiederherstellung eines unterbrochenen Walks ──
-  (function checkRecovery(){
-    const saved = localStorage.getItem('psychogeo_current_walk');
-    if(!saved) return;
-    try{
-      const recovered = JSON.parse(saved);
-      if(!recovered || !recovered.route || recovered.route.length < 2) {
-        localStorage.removeItem('psychogeo_current_walk');
-        return;
-      }
-      // Banner anzeigen
-      const banner = document.createElement('div');
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;'
-        +'background:#dc2626;color:#fff;padding:14px 16px;font-size:12px;'
-        +'display:flex;align-items:center;justify-content:space-between;gap:10px;'
-        +'box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-      banner.innerHTML = '<div><b>⚠️ Unterbrochener Walk gefunden!</b><br>'
-        +'<span style="font-size:11px;opacity:0.9;">"'+recovered.name+'" — '+recovered.route.length+' GPS-Punkte, '+recovered.entries.length+' Einträge</span></div>'
-        +'<div style="display:flex;gap:8px;flex-shrink:0;">'
-        +'<button id="recoverBtn" style="padding:8px 14px;border-radius:8px;border:none;background:#fff;color:#dc2626;font-size:11px;font-weight:bold;cursor:pointer;">💾 Wiederherstellen</button>'
-        +'<button id="discardBtn" style="padding:8px 14px;border-radius:8px;border:none;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;">✕ Verwerfen</button>'
-        +'</div>';
-      document.body.appendChild(banner);
-
-      document.getElementById('recoverBtn').onclick=()=>{
-        // Walk ins Archiv speichern
-        recovered.name = recovered.name + ' (wiederhergestellt)';
-        if(!recovered.reflection) recovered.reflection={frei:'',moodRetro:3,moment:'',orte:'',nicht:'',ueber:''};
-        state.walks.push(recovered);
-        saveWalks();
-        localStorage.removeItem('psychogeo_current_walk');
-        banner.remove();
-        renderArchive();
-        openPanel('archiv');
-        // Grüner Bestätigungs-Banner
-        const ok=document.createElement('div');
-        ok.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:#fff;'
-          +'padding:12px 16px;font-size:12px;font-weight:bold;text-align:center;';
-        ok.textContent='✅ Walk wiederhergestellt und im Archiv gespeichert!';
-        document.body.appendChild(ok);
-        setTimeout(()=>ok.remove(),4000);
-      };
-
-      document.getElementById('discardBtn').onclick=()=>{
-        localStorage.removeItem('psychogeo_current_walk');
-        banner.remove();
-      };
-    }catch(ex){
-      localStorage.removeItem('psychogeo_current_walk');
-    }
-  })();
-
-  // Fix Drawer-Höhe auf Mobile — funktioniert auf Android UND iPhone Safari
+  // Fix Drawer-Höhe auf Mobile — Android UND iPhone Safari
   function fixDrawerHeight(){
     const d=document.getElementById('drawer');
     if(!d) return;
-    // visualViewport ist präziser als window.innerHeight (iPhone Safari-Toolbar)
     const h=window.visualViewport?window.visualViewport.height:window.innerHeight;
     d.style.height=h+'px';
   }
@@ -2505,6 +2464,69 @@ window.addEventListener('load', function() {
   }
 
   renderArchive();
+
+  // ── Wiederherstellung eines unterbrochenen Walks ──
+  // Läuft nach renderArchive damit saveWalks/openPanel verfügbar sind
+  (function checkRecovery(){
+    const saved = localStorage.getItem('psychogeo_current_walk');
+    if(!saved) return;
+    let recovered;
+    try{ recovered = JSON.parse(saved); }
+    catch(ex){ localStorage.removeItem('psychogeo_current_walk'); return; }
+    if(!recovered || !recovered.route || recovered.route.length < 2){
+      localStorage.removeItem('psychogeo_current_walk');
+      return;
+    }
+    // Banner anzeigen
+    const banner = document.createElement('div');
+    banner.id = 'recoveryBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;'
+      +'background:#dc2626;color:#fff;padding:14px 16px;font-size:12px;'
+      +'display:flex;align-items:center;justify-content:space-between;gap:10px;'
+      +'box-shadow:0 4px 20px rgba(0,0,0,0.3);flex-wrap:wrap;';
+    banner.innerHTML = '<div><b>⚠️ Unterbrochener Walk gefunden!</b><br>'
+      +'<span style="font-size:11px;opacity:0.9;">"'+recovered.name
+      +'" — '+recovered.route.length+' GPS-Punkte, '+recovered.entries.length+' Einträge</span></div>'
+      +'<div style="display:flex;gap:8px;flex-shrink:0;">'
+      +'<button id="recoverBtn" style="padding:8px 14px;border-radius:8px;border:none;'
+      +'background:#fff;color:#dc2626;font-size:11px;font-weight:bold;cursor:pointer;'
+      +'-webkit-tap-highlight-color:transparent;">💾 Wiederherstellen</button>'
+      +'<button id="discardBtn" style="padding:8px 14px;border-radius:8px;border:none;'
+      +'background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;'
+      +'-webkit-tap-highlight-color:transparent;">✕ Verwerfen</button>'
+      +'</div>';
+    document.body.appendChild(banner);
+
+    document.getElementById('recoverBtn').addEventListener('click', function(){
+      try{
+        if(!recovered.reflection) recovered.reflection={frei:'',moodRetro:3,moment:'',orte:'',nicht:'',ueber:''};
+        if(!recovered.segments) recovered.segments=[];
+        if(!recovered.entries) recovered.entries=[];
+        recovered.name = recovered.name + ' (wiederhergestellt)';
+        state.walks.push(recovered);
+        saveWalks();
+        localStorage.removeItem('psychogeo_current_walk');
+        banner.remove();
+        renderArchive();
+        openPanel('archiv');
+        // Grüner Bestätigungs-Banner
+        const ok=document.createElement('div');
+        ok.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;'
+          +'color:#fff;padding:12px 16px;font-size:12px;font-weight:bold;text-align:center;'
+          +'box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+        ok.textContent='✅ Walk wiederhergestellt und im Archiv gespeichert!';
+        document.body.appendChild(ok);
+        setTimeout(()=>ok.remove(), 4000);
+      } catch(err){
+        alert('Fehler beim Wiederherstellen: '+err.message);
+      }
+    });
+
+    document.getElementById('discardBtn').addEventListener('click', function(){
+      localStorage.removeItem('psychogeo_current_walk');
+      banner.remove();
+    });
+  })();
 });
 </script>
 <!-- REFLEXIONS-MODAL -->
