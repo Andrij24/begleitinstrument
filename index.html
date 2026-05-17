@@ -878,6 +878,20 @@ window.addEventListener('load', function() {
     inkLayer.clearSegments();
     state.current={id:Date.now(),name:new Date().toLocaleString('de-DE'),route:[],segments:[],entries:[],steps:0,color:walkColors[state.walks.length%walkColors.length],reflection:{frei:'',moodRetro:3,moment:'',orte:'',nicht:'',ueber:''}};
     requestWakeLock();
+    // Auto-Save starten — alle 30 Sekunden
+    if(window._autoSaveInterval) clearInterval(window._autoSaveInterval);
+    window._autoSaveInterval=setInterval(()=>{
+      if(state.current){
+        try{
+          localStorage.setItem('psychogeo_current_walk', JSON.stringify({
+            ...state.current,
+            entries: state.current.entries.map(e=>{
+              const c={...e};delete c.audioUrl;return c;
+            })
+          }));
+        }catch(ex){console.warn('Auto-Save fehlgeschlagen:',ex);}
+      }
+    },30000);
     alert('Walk gestartet!');
   };
 
@@ -890,6 +904,9 @@ window.addEventListener('load', function() {
     Object.keys(mapLayers).forEach(k=>{mapLayers[k].forEach(l=>{try{state.map.removeLayer(l);}catch(e){}});mapLayers[k]=[];});
     if(!state.current.reflection)state.current.reflection={frei:'',moodRetro:3,moment:'',orte:'',nicht:'',ueber:''};
     releaseWakeLock();
+    // Auto-Save stoppen und temporären Walk löschen
+    if(window._autoSaveInterval){clearInterval(window._autoSaveInterval);window._autoSaveInterval=null;}
+    localStorage.removeItem('psychogeo_current_walk');
     const savedWalk=state.current;
     state.walks.push(state.current);saveWalks();state.current=null;renderArchive();openPanel('archiv');
     // Export-Banner im Archiv anzeigen
@@ -2332,7 +2349,7 @@ window.addEventListener('load', function() {
     }
 
     // Onboarding anzeigen — Version-Key damit neue Version immer erscheint
-    const OB_VERSION='v8';
+    const OB_VERSION='v9';
     if(localStorage.getItem('ob_done')!==OB_VERSION){
       document.getElementById('onboardingModal').style.display='flex';
     }
@@ -2375,6 +2392,58 @@ window.addEventListener('load', function() {
     document.getElementById('onboardingModal').style.display='flex';
     goToStep(0);
   };
+
+  // ── Wiederherstellung eines unterbrochenen Walks ──
+  (function checkRecovery(){
+    const saved = localStorage.getItem('psychogeo_current_walk');
+    if(!saved) return;
+    try{
+      const recovered = JSON.parse(saved);
+      if(!recovered || !recovered.route || recovered.route.length < 2) {
+        localStorage.removeItem('psychogeo_current_walk');
+        return;
+      }
+      // Banner anzeigen
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;'
+        +'background:#dc2626;color:#fff;padding:14px 16px;font-size:12px;'
+        +'display:flex;align-items:center;justify-content:space-between;gap:10px;'
+        +'box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+      banner.innerHTML = '<div><b>⚠️ Unterbrochener Walk gefunden!</b><br>'
+        +'<span style="font-size:11px;opacity:0.9;">"'+recovered.name+'" — '+recovered.route.length+' GPS-Punkte, '+recovered.entries.length+' Einträge</span></div>'
+        +'<div style="display:flex;gap:8px;flex-shrink:0;">'
+        +'<button id="recoverBtn" style="padding:8px 14px;border-radius:8px;border:none;background:#fff;color:#dc2626;font-size:11px;font-weight:bold;cursor:pointer;">💾 Wiederherstellen</button>'
+        +'<button id="discardBtn" style="padding:8px 14px;border-radius:8px;border:none;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;">✕ Verwerfen</button>'
+        +'</div>';
+      document.body.appendChild(banner);
+
+      document.getElementById('recoverBtn').onclick=()=>{
+        // Walk ins Archiv speichern
+        recovered.name = recovered.name + ' (wiederhergestellt)';
+        if(!recovered.reflection) recovered.reflection={frei:'',moodRetro:3,moment:'',orte:'',nicht:'',ueber:''};
+        state.walks.push(recovered);
+        saveWalks();
+        localStorage.removeItem('psychogeo_current_walk');
+        banner.remove();
+        renderArchive();
+        openPanel('archiv');
+        // Grüner Bestätigungs-Banner
+        const ok=document.createElement('div');
+        ok.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#16a34a;color:#fff;'
+          +'padding:12px 16px;font-size:12px;font-weight:bold;text-align:center;';
+        ok.textContent='✅ Walk wiederhergestellt und im Archiv gespeichert!';
+        document.body.appendChild(ok);
+        setTimeout(()=>ok.remove(),4000);
+      };
+
+      document.getElementById('discardBtn').onclick=()=>{
+        localStorage.removeItem('psychogeo_current_walk');
+        banner.remove();
+      };
+    }catch(ex){
+      localStorage.removeItem('psychogeo_current_walk');
+    }
+  })();
 
   renderArchive();
 });
@@ -2695,6 +2764,7 @@ window.addEventListener('load', function() {
 
   </div>
 </div>
+
 
 <!-- VERGLEICH-VOLLBILD -->
 <div id="vglOverlay" style="display:none;position:fixed;inset:0;z-index:5000;background:#f0ede8;flex-direction:column;overflow:hidden;">
