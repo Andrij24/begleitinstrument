@@ -403,6 +403,10 @@ window.addEventListener('load', function() {
   let currentTileUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   state.map=L.map('map',{zoomControl:false,maxZoom:22}).setView([47.23,9.61],17);
+  // Eigener Pane für Tuschelinien — unter Markern (markerPane=600)
+  state.map.createPane('inkPane');
+  state.map.getPane('inkPane').style.zIndex=350;
+  state.map.getPane('inkPane').style.pointerEvents='none';
   // Direkt eigene MapTiler-Karte laden
   currentTileUrl='maptiler-vector';
   // Temporär OSM bis MapLibre geladen ist
@@ -778,7 +782,8 @@ window.addEventListener('load', function() {
       this._map=map;
       const c=document.createElement('canvas');
       c.style.cssText='position:absolute;top:0;left:0;pointer-events:none;z-index:200;';
-      map.getPanes().overlayPane.appendChild(c);
+      const pane=map.getPane('inkPane')||map.getPanes().overlayPane;
+      pane.appendChild(c);
       this._canvas=c; this._ctx=c.getContext('2d');
       // Auf alle Karten-Events reagieren — auch während Zoom-Animation
       map.on('movestart move moveend zoomstart zoom zoomend viewreset resize',this._onMapMove,this);
@@ -786,7 +791,8 @@ window.addEventListener('load', function() {
       return this;
     },
     onRemove(map){
-      map.getPanes().overlayPane.removeChild(this._canvas);
+      const pane=map.getPane('inkPane')||map.getPanes().overlayPane;
+      if(pane.contains(this._canvas))pane.removeChild(this._canvas);
       map.off('movestart move moveend zoomstart zoom zoomend viewreset resize',this._onMapMove,this);
     },
     _onMapMove(){this._reset();},
@@ -1181,7 +1187,7 @@ window.addEventListener('load', function() {
         const offset=posIdx===0?0:0.00004*(1+Math.floor(posIdx/8));
         const offsetLat=e.location.lat+Math.sin(angle)*offset;
         const offsetLng=e.location.lng+Math.cos(angle)*offset;
-        L.circleMarker([offsetLat,offsetLng],{color:'#fff',weight:2,fillColor:dc,fillOpacity:0.95,radius:dr+1}).addTo(group).bindPopup(popup);
+        L.circleMarker([offsetLat,offsetLng],{color:'#fff',weight:2,fillColor:dc,fillOpacity:0.95,radius:dr+1,pane:'markerPane'}).addTo(group).bindPopup(popup);
       });
       group.addTo(state.map);state.activeLayers[id]=group;
       if(header)header.classList.add('shown');if(actions)actions.classList.add('open');
