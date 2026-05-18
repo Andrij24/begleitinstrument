@@ -904,6 +904,7 @@ window.addEventListener('load', function() {
         state.current.segments.push({ll1:lastPos,ll2:ll,weight:w,opacity:op});
         if(layerVisibility.route)inkLayer.addSegment(lastPos,ll,w,op);
         const se=document.getElementById('currentSpeed');if(se)se.textContent=(smoothedSpeed*3.6).toFixed(1)+' km/h';
+        autoSaveNow();
       } else state.current.route.push(ll);
       lastPos=ll;lastPosTime=now;
     }
@@ -949,7 +950,7 @@ window.addEventListener('load', function() {
           }));
         }catch(ex){console.warn('Auto-Save fehlgeschlagen:',ex);}
       }
-    },30000);
+    },10000);
     alert('Walk gestartet!');
   };
 
@@ -987,9 +988,22 @@ window.addEventListener('load', function() {
       };
       list.insertBefore(banner,list.firstChild);
       // Banner nach 30 Sek. automatisch ausblenden
-      setTimeout(()=>{if(banner.parentNode)banner.remove();},30000);
+      setTimeout(()=>{if(banner.parentNode)banner.remove();},10000);
     },300);
   };
+
+  // Sofort-Save des laufenden Walks (bei GPS-Punkt + Eintrag)
+  function autoSaveNow(){
+    if(!state.current) return;
+    try{
+      localStorage.setItem('psychogeo_current_walk', JSON.stringify({
+        ...state.current,
+        entries: state.current.entries.map(e=>{
+          const c={...e};delete c.audioUrl;return c;
+        })
+      }));
+    }catch(ex){console.warn('AutoSave fehlgeschlagen:',ex);}
+  }
 
   function saveWalks(){
     const ts=state.walks.map(w=>({...w,entries:w.entries.map(e=>{
@@ -1056,8 +1070,8 @@ window.addEventListener('load', function() {
     const popup='<img src="'+dataUrl+'" style="width:200px;border-radius:8px;"/><br><small>'+ts+'</small>';
     const m=placeMarker('photo',pos,popup);m.setIcon(icon);return ts;
   }
-  document.getElementById('captureBtn').onclick=()=>{if(!requireWalk()){closeCamera();return;}const pos=getPos();photoCanvas.width=cameraPreview.videoWidth;photoCanvas.height=cameraPreview.videoHeight;photoCanvas.getContext('2d').drawImage(cameraPreview,0,0);const dataUrl=photoCanvas.toDataURL('image/jpeg',0.7);const ts=placePhotoMarker(dataUrl,pos);state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl});closeCamera();};
-  document.getElementById('photoInput').onchange=function(){if(!this.files||!this.files[0]||!requireWalk())return;const pos=getPos();const reader=new FileReader();reader.onload=e=>{const dataUrl=e.target.result;const ts=placePhotoMarker(dataUrl,pos);state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl});};reader.readAsDataURL(this.files[0]);this.value='';};
+  document.getElementById('captureBtn').onclick=()=>{if(!requireWalk()){closeCamera();return;}const pos=getPos();photoCanvas.width=cameraPreview.videoWidth;photoCanvas.height=cameraPreview.videoHeight;photoCanvas.getContext('2d').drawImage(cameraPreview,0,0);const dataUrl=photoCanvas.toDataURL('image/jpeg',0.7);const ts=placePhotoMarker(dataUrl,pos);state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl});autoSaveNow();closeCamera();};
+  document.getElementById('photoInput').onchange=function(){if(!this.files||!this.files[0]||!requireWalk())return;const pos=getPos();const reader=new FileReader();reader.onload=e=>{const dataUrl=e.target.result;const ts=placePhotoMarker(dataUrl,pos);state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl});autoSaveNow();};reader.readAsDataURL(this.files[0]);this.value='';};
   document.getElementById('fabPhoto').onclick=()=>openCamera();
 
   const audioModal=document.getElementById('audioModal');
@@ -1078,7 +1092,7 @@ window.addEventListener('load', function() {
     const blob=new Blob(audioChunks,{type:MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm'});
     const url=URL.createObjectURL(blob);const pos=getPos();const ts=new Date().toLocaleTimeString();const dur=formatTime(timerSec);
     const entryId='audio_'+Date.now();audioBlobs[entryId]=blob;
-    state.current.entries.push({type:audioType,location:{lat:pos.lat,lng:pos.lng},timestamp:ts,audioDuration:dur,audioUrl:url,entryId});
+    state.current.entries.push({type:audioType,location:{lat:pos.lat,lng:pos.lng},timestamp:ts,audioDuration:dur,audioUrl:url,entryId});autoSaveNow();
     const color=audioType==='voice'?'#7c3aed':'#f97316';
     const svgI=audioType==='voice'?'<line x1="8" y1="5" x2="8" y2="11" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>':'<circle cx="8" cy="8" r="3" fill="none" stroke="#fff" stroke-width="1.8"/><line x1="8" y1="2" x2="8" y2="5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>';
     const icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:'+color+';border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 16 16">'+svgI+'</svg></div>',iconSize:[22,22],iconAnchor:[11,11],popupAnchor:[0,-14]});
@@ -1107,7 +1121,7 @@ window.addEventListener('load', function() {
     if(!requireWalk())return;
     const val=parseInt(moodSlider.value),col=moodColor(val),note=document.getElementById('moodText').value.trim();
     const pos=getPos(),ts=new Date().toLocaleTimeString();
-    state.current.entries.push({type:'mood',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,moodValue:val,markerColor:col,text:note});
+    state.current.entries.push({type:'mood',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,moodValue:val,markerColor:col,text:note});autoSaveNow();
     const icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:'+col+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:10px;font-weight:bold;">'+val+'</span></div>',iconSize:[22,22],iconAnchor:[11,11],popupAnchor:[0,-14]});
     const popup='<div style="min-width:150px;padding:4px;"><b style="font-size:13px;">Stimmung</b><br><div style="margin:8px 0 4px;background:#eee;border-radius:6px;height:10px;overflow:hidden;"><div style="height:100%;width:'+((val-1)/4*100)+'%;background:'+col+';border-radius:6px;"></div></div><span style="font-size:22px;font-weight:bold;color:'+col+';">'+val+'</span><span style="font-size:12px;color:#aaa;"> / 100</span>'+(note?'<br><span style="font-size:11px;color:#555;margin-top:4px;display:block;">'+note+'</span>':'')+'<br><span style="font-size:10px;color:#bbb;">'+ts+'</span></div>';
     mapLayers['mood']=mapLayers['mood']||[];
@@ -1128,7 +1142,7 @@ window.addEventListener('load', function() {
   document.getElementById('thoughtCancel').onclick=()=>{thoughtModal.style.display='none';};
   document.getElementById('thoughtSave').onclick=()=>{
     if(!requireWalk())return;const t=document.getElementById('thoughtText').value.trim();const pos=getPos();const ts=new Date().toLocaleTimeString();
-    state.current.entries.push({type:'thought',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,text:t||'(kein Text)'});
+    state.current.entries.push({type:'thought',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,text:t||'(kein Text)'});autoSaveNow();
     const icon=makeDotIcon('#22c55e',20);const popup='<div style="min-width:140px;"><b>Gedanke</b><br><p style="margin:4px 0;font-size:12px;color:#333;">'+(t||'—')+'</p><small style="color:#aaa;">'+ts+'</small></div>';
     mapLayers['thought']=mapLayers['thought']||[];const m=L.marker([pos.lat,pos.lng],{icon,zIndexOffset:1000}).bindPopup(popup);mapLayers['thought'].push(m);
     if(layerVisibility['thought']!==false){m.addTo(state.map);m.openPopup();}
@@ -1140,7 +1154,7 @@ window.addEventListener('load', function() {
   document.getElementById('senseCancel').onclick=()=>{senseModal.style.display='none';};
   document.getElementById('senseSave').onclick=()=>{
     if(!requireWalk())return;const t=document.getElementById('senseText').value.trim();const pos=getPos();const ts=new Date().toLocaleTimeString();
-    state.current.entries.push({type:'sense',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,text:t||'(keine Eingabe)'});
+    state.current.entries.push({type:'sense',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,text:t||'(keine Eingabe)'});autoSaveNow();
     const icon=makeDotIcon('#f97316',20);const popup='<div style="min-width:140px;"><b>Wahrnehmung</b><br>'+(t?'<p style="margin:4px 0;font-size:12px;color:#333;">'+t+'</p>':'')+'<small style="color:#aaa;">'+ts+'</small></div>';
     mapLayers['sense']=mapLayers['sense']||[];const m=L.marker([pos.lat,pos.lng],{icon,zIndexOffset:1000}).bindPopup(popup);mapLayers['sense'].push(m);
     if(layerVisibility['sense']!==false){m.addTo(state.map);m.openPopup();}
