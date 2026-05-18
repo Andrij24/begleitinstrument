@@ -315,6 +315,19 @@
 <div id="exportOverlay"><div id="exportBox"><div style="font-size:24px;">📦</div><div id="exportMsg">Exportiere...</div></div></div>
 <input type="file" id="photoInput" accept="image/*" capture="environment"/>
 
+<!-- FOTO-NOTIZ MODAL -->
+<div id="photoNoteModal" style="display:none;position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:24px;width:min(92vw,340px);display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:13px;font-weight:bold;color:#111;text-align:center;">📸 Foto-Notiz</div>
+    <img id="photoNotePreview" style="width:100%;border-radius:10px;max-height:180px;object-fit:cover;"/>
+    <textarea id="photoNoteText" placeholder="Notiz zum Foto (optional)..." style="width:100%;height:80px;border-radius:10px;border:1px solid #ddd;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
+    <div style="display:flex;gap:8px;">
+      <button id="photoNoteSkip" style="flex:1;padding:12px;border-radius:10px;border:none;background:#f0f0f0;color:#555;font-weight:bold;font-size:11px;cursor:pointer;">Überspringen</button>
+      <button id="photoNoteSave" style="flex:1;padding:12px;border-radius:10px;border:none;background:#374151;color:#fff;font-weight:bold;font-size:11px;cursor:pointer;">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- AUSWERTUNGS-MODAL — nur Ich-Sicht -->
 <div id="analyseModal">
   <div id="analyseBox">
@@ -1064,14 +1077,57 @@ window.addEventListener('load', function() {
   async function openCamera(){try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});cameraPreview.srcObject=cameraStream;cameraModal.classList.add('open');}catch(e){document.getElementById('photoInput').click();}}
   function closeCamera(){if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}cameraModal.classList.remove('open');}
   document.getElementById('closeCamera').onclick=closeCamera;
-  function placePhotoMarker(dataUrl,pos){
+  function placePhotoMarker(dataUrl,pos,note){
     const ts=new Date().toLocaleTimeString();
     const icon=L.divIcon({className:'',html:'<div style="width:26px;height:26px;border-radius:50%;border:2.5px solid #fff;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.4);background:#555;"><img src="'+dataUrl+'" style="width:100%;height:100%;object-fit:cover;"/></div>',iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-16]});
-    const popup='<img src="'+dataUrl+'" style="width:200px;border-radius:8px;"/><br><small>'+ts+'</small>';
+    const popup='<div style="min-width:200px;">'
+      +'<img src="'+dataUrl+'" style="width:100%;border-radius:8px;"/>'
+      +(note?'<div style="font-size:12px;color:#333;margin-top:6px;line-height:1.5;">'+escHtml(note)+'</div>':'')
+      +'<small style="color:#aaa;">'+ts+'</small></div>';
     const m=placeMarker('photo',pos,popup);m.setIcon(icon);return ts;
   }
-  document.getElementById('captureBtn').onclick=()=>{if(!requireWalk()){closeCamera();return;}const pos=getPos();photoCanvas.width=cameraPreview.videoWidth;photoCanvas.height=cameraPreview.videoHeight;photoCanvas.getContext('2d').drawImage(cameraPreview,0,0);const dataUrl=photoCanvas.toDataURL('image/jpeg',0.7);const ts=placePhotoMarker(dataUrl,pos);state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl});autoSaveNow();closeCamera();};
-  document.getElementById('photoInput').onchange=function(){if(!this.files||!this.files[0]||!requireWalk())return;const pos=getPos();const reader=new FileReader();reader.onload=e=>{const dataUrl=e.target.result;const ts=placePhotoMarker(dataUrl,pos);state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl});autoSaveNow();};reader.readAsDataURL(this.files[0]);this.value='';};
+  let _pendingPhoto={dataUrl:null,pos:null};
+  document.getElementById('captureBtn').onclick=()=>{
+    if(!requireWalk()){closeCamera();return;}
+    const pos=getPos();
+    photoCanvas.width=cameraPreview.videoWidth;
+    photoCanvas.height=cameraPreview.videoHeight;
+    photoCanvas.getContext('2d').drawImage(cameraPreview,0,0);
+    const dataUrl=photoCanvas.toDataURL('image/jpeg',0.7);
+    closeCamera();
+    // Notiz-Modal öffnen
+    _pendingPhoto={dataUrl,pos};
+    document.getElementById('photoNotePreview').src=dataUrl;
+    document.getElementById('photoNoteText').value='';
+    document.getElementById('photoNoteModal').style.display='flex';
+  };
+
+  function _savePhotoWithNote(note){
+    const {dataUrl,pos}=_pendingPhoto;
+    if(!dataUrl||!pos) return;
+    const ts=placePhotoMarker(dataUrl,pos,note);
+    state.current.entries.push({type:'photo',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,dataUrl,text:note||''});
+    autoSaveNow();
+    document.getElementById('photoNoteModal').style.display='none';
+    _pendingPhoto={dataUrl:null,pos:null};
+  }
+
+  document.getElementById('photoNoteSkip').onclick=()=>_savePhotoWithNote('');
+  document.getElementById('photoNoteSave').onclick=()=>_savePhotoWithNote(document.getElementById('photoNoteText').value.trim());
+  document.getElementById('photoInput').onchange=function(){
+    if(!this.files||!this.files[0]||!requireWalk())return;
+    const pos=getPos();
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const dataUrl=e.target.result;
+      _pendingPhoto={dataUrl,pos};
+      document.getElementById('photoNotePreview').src=dataUrl;
+      document.getElementById('photoNoteText').value='';
+      document.getElementById('photoNoteModal').style.display='flex';
+    };
+    reader.readAsDataURL(this.files[0]);
+    this.value='';
+  };
   document.getElementById('fabPhoto').onclick=()=>openCamera();
 
   const audioModal=document.getElementById('audioModal');
@@ -1186,7 +1242,7 @@ window.addEventListener('load', function() {
         if(e.text) popup+='<div style="margin-top:4px;color:#333;">'+escHtml(e.text)+'</div>';
         if(e.moodValue!=null) popup+='<div style="font-size:24px;font-weight:bold;color:#f97316;margin:4px 0;">'+e.moodValue+'/5</div>';
         popup+='__AUDIO__</div>';
-        if(e.dataUrl)popup='<img src="'+e.dataUrl+'" style="width:180px;border-radius:6px;"/><br><small>'+(e.timestamp||'')+'</small>';
+        if(e.dataUrl)popup='<div><img src="'+e.dataUrl+'" style="width:180px;border-radius:6px;"/>'+(e.text?'<div style="font-size:11px;color:#333;margin-top:4px;padding:0 2px;">'+escHtml(e.text)+'</div>':'')+'<br><small style="color:#aaa;">'+(e.timestamp||'')+'</small></div>';
         const eAurl=e.audioUrl||(e.entryId&&audioBlobs[e.entryId]?URL.createObjectURL(audioBlobs[e.entryId]):null)||e.audioBase64||null;
         const eAudio=eAurl?'<audio controls src="'+eAurl+'" style="width:100%;margin-top:8px;height:40px;"></audio>':'';
         popup=popup.replace('__AUDIO__',eAudio);
@@ -2171,6 +2227,7 @@ window.addEventListener('load', function() {
                 if(e.moodValue!=null) desc='Stimmung: '+e.moodValue+'/5';
                 if(e.text) desc+=(desc?'\n':'')+e.text;
                 if(e.audioDuration) desc+=(desc?'\n':'')+'Aufnahmedauer: '+e.audioDuration;
+                if(e.type==='photo'&&!e.text) desc='📸 Foto (keine Notiz)';
                 // Foto als Base64 direkt ins GeoJSON (uMap zeigt es per img-Tag)
                 const imgTag=e.dataUrl
                   ?'<img src="'+e.dataUrl+'" style="max-width:200px;border-radius:6px;margin-top:6px;"/>'
@@ -2225,7 +2282,7 @@ window.addEventListener('load', function() {
         );
       }
       // ── Eintraege.txt — alle Texteingaben exportieren ──
-      const textEntries=walk.entries.filter(e=>e.text||(e.type==='mood'&&e.moodValue!=null));
+      const textEntries=walk.entries.filter(e=>e.text||(e.type==='mood'&&e.moodValue!=null)||e.type==='photo');
       if(textEntries.length>0){
         let txt='EINTRÄGE: '+walk.name+'\n'+'='.repeat(40)+'\n';
         const typeNames={mood:'Stimmung',thought:'Gedanke',sense:'Eindrücke',voice:'Sprachnachricht',sound:'Umgebungssound',photo:'Foto'};
@@ -2237,6 +2294,7 @@ window.addEventListener('load', function() {
           if(e.type==='mood'&&e.moodValue!=null) txt+='Stimmung: '+e.moodValue+'/5\n';
           if(e.text) txt+=e.text+'\n';
           if(e.audioDuration) txt+='Audio-Dauer: '+e.audioDuration+'\n';
+          if(e.type==='photo') txt+='📸 Foto'+(e.text?' — '+e.text:'')+'\n';
         });
         folder.file('eintraege.txt',txt);
       }
@@ -2295,6 +2353,8 @@ window.addEventListener('load', function() {
         popupLines.push('<span style="font-size:28px;font-weight:bold;color:'+col+';">'+e.moodValue+'<span style="font-size:13px;color:#aaa;"> /5</span></span>');
       if(e.text)
         popupLines.push('<p style="margin:6px 0;font-size:13px;color:#333;">'+e.text+'</p>');
+      else if(e.type==='photo')
+        popupLines.push('<p style="margin:6px 0;font-size:11px;color:#aaa;">(keine Notiz)</p>');
       if(e.dataUrl)
         popupLines.push('<img src="'+e.dataUrl+'" style="width:100%;max-width:280px;border-radius:8px;margin-top:6px;"/>');
       if(e.audioBase64)
