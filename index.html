@@ -777,7 +777,7 @@ window.addEventListener('load', function() {
     onAdd(map){
       this._map=map;
       const c=document.createElement('canvas');
-      c.style.cssText='position:absolute;top:0;left:0;pointer-events:none;z-index:400;';
+      c.style.cssText='position:absolute;top:0;left:0;pointer-events:none;z-index:200;';
       map.getPanes().overlayPane.appendChild(c);
       this._canvas=c; this._ctx=c.getContext('2d');
       // Auf alle Karten-Events reagieren — auch während Zoom-Animation
@@ -1012,9 +1012,21 @@ window.addEventListener('load', function() {
   }
 
 
+  // Track live marker positions for overlap detection
+  const _livePosCounts={};
   function placeMarker(type,latLng,popupHTML){
     mapLayers[type]=mapLayers[type]||[];
-    const m=L.marker(latLng).bindPopup(popupHTML);
+    // Überlappende Marker versetzen
+    const posKey=latLng.lat.toFixed(5)+','+latLng.lng.toFixed(5);
+    _livePosCounts[posKey]=(_livePosCounts[posKey]||0)+1;
+    const posIdx=_livePosCounts[posKey]-1;
+    const angle=(posIdx*137.5)*(Math.PI/180);
+    const offset=posIdx===0?0:0.00004*(1+Math.floor(posIdx/8));
+    const adjLatLng=posIdx===0?latLng:L.latLng(
+      latLng.lat+Math.sin(angle)*offset,
+      latLng.lng+Math.cos(angle)*offset
+    );
+    const m=L.marker(adjLatLng,{zIndexOffset:1000}).bindPopup(popupHTML);
     mapLayers[type].push(m);
     if(layerVisibility[type]!==false){m.addTo(state.map);m.openPopup();}
     return m;
@@ -1092,7 +1104,15 @@ window.addEventListener('load', function() {
     state.current.entries.push({type:'mood',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,moodValue:val,markerColor:col,text:note});
     const icon=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:'+col+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:10px;font-weight:bold;">'+val+'</span></div>',iconSize:[22,22],iconAnchor:[11,11],popupAnchor:[0,-14]});
     const popup='<div style="min-width:150px;padding:4px;"><b style="font-size:13px;">Stimmung</b><br><div style="margin:8px 0 4px;background:#eee;border-radius:6px;height:10px;overflow:hidden;"><div style="height:100%;width:'+((val-1)/4*100)+'%;background:'+col+';border-radius:6px;"></div></div><span style="font-size:22px;font-weight:bold;color:'+col+';">'+val+'</span><span style="font-size:12px;color:#aaa;"> / 100</span>'+(note?'<br><span style="font-size:11px;color:#555;margin-top:4px;display:block;">'+note+'</span>':'')+'<br><span style="font-size:10px;color:#bbb;">'+ts+'</span></div>';
-    mapLayers['mood']=mapLayers['mood']||[];const m=L.marker([pos.lat,pos.lng],{icon}).bindPopup(popup);mapLayers['mood'].push(m);
+    mapLayers['mood']=mapLayers['mood']||[];
+    const moodPosKey=pos.lat.toFixed(5)+','+pos.lng.toFixed(5);
+    _livePosCounts[moodPosKey]=(_livePosCounts[moodPosKey]||0)+1;
+    const moodPosIdx=_livePosCounts[moodPosKey]-1;
+    const moodAngle=(moodPosIdx*137.5)*(Math.PI/180);
+    const moodOffset=moodPosIdx===0?0:0.00004*(1+Math.floor(moodPosIdx/8));
+    const moodLat=pos.lat+Math.sin(moodAngle)*moodOffset;
+    const moodLng=pos.lng+Math.cos(moodAngle)*moodOffset;
+    const m=L.marker([moodLat,moodLng],{icon,zIndexOffset:1000}).bindPopup(popup);mapLayers['mood'].push(m);
     if(layerVisibility['mood']!==false){m.addTo(state.map);setTimeout(()=>m.openPopup(),100);}
     moodModal.style.display='none';document.getElementById('moodText').value='';moodSlider.value=3;updateMoodUI(3);
   });
@@ -1104,7 +1124,7 @@ window.addEventListener('load', function() {
     if(!requireWalk())return;const t=document.getElementById('thoughtText').value.trim();const pos=getPos();const ts=new Date().toLocaleTimeString();
     state.current.entries.push({type:'thought',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,text:t||'(kein Text)'});
     const icon=makeDotIcon('#22c55e',20);const popup='<div style="min-width:140px;"><b>Gedanke</b><br><p style="margin:4px 0;font-size:12px;color:#333;">'+(t||'—')+'</p><small style="color:#aaa;">'+ts+'</small></div>';
-    mapLayers['thought']=mapLayers['thought']||[];const m=L.marker([pos.lat,pos.lng],{icon}).bindPopup(popup);mapLayers['thought'].push(m);
+    mapLayers['thought']=mapLayers['thought']||[];const m=L.marker([pos.lat,pos.lng],{icon,zIndexOffset:1000}).bindPopup(popup);mapLayers['thought'].push(m);
     if(layerVisibility['thought']!==false){m.addTo(state.map);m.openPopup();}
     thoughtModal.style.display='none';document.getElementById('thoughtText').value='';
   };
@@ -1116,7 +1136,7 @@ window.addEventListener('load', function() {
     if(!requireWalk())return;const t=document.getElementById('senseText').value.trim();const pos=getPos();const ts=new Date().toLocaleTimeString();
     state.current.entries.push({type:'sense',location:{lat:pos.lat,lng:pos.lng},timestamp:ts,text:t||'(keine Eingabe)'});
     const icon=makeDotIcon('#f97316',20);const popup='<div style="min-width:140px;"><b>Wahrnehmung</b><br>'+(t?'<p style="margin:4px 0;font-size:12px;color:#333;">'+t+'</p>':'')+'<small style="color:#aaa;">'+ts+'</small></div>';
-    mapLayers['sense']=mapLayers['sense']||[];const m=L.marker([pos.lat,pos.lng],{icon}).bindPopup(popup);mapLayers['sense'].push(m);
+    mapLayers['sense']=mapLayers['sense']||[];const m=L.marker([pos.lat,pos.lng],{icon,zIndexOffset:1000}).bindPopup(popup);mapLayers['sense'].push(m);
     if(layerVisibility['sense']!==false){m.addTo(state.map);m.openPopup();}
     senseModal.style.display='none';document.getElementById('senseText').value='';
   };
@@ -1152,8 +1172,16 @@ window.addEventListener('load', function() {
         popup=popup.replace('__AUDIO__',eAudio);
         const dc=e.type==='thought'?'#22c55e':e.type==='sense'?'#f97316':e.type==='mood'?(e.markerColor||walk.color):e.type==='voice'?'#7c3aed':e.type==='sound'?'#f97316':e.type==='photo'?'#555':walk.color;
         const dr=(e.type==='mood'||e.type==='thought'||e.type==='sense')?7:5;
-        const dop=(e.type==='photo'||e.type==='voice'||e.type==='sound')?0.6:0.92;
-        L.circleMarker([e.location.lat,e.location.lng],{color:'#fff',weight:2,fillColor:dc,fillOpacity:0.95,radius:dr+1}).addTo(group).bindPopup(popup);
+        // Überlappende Marker leicht versetzen
+        const posKey=e.location.lat.toFixed(5)+','+e.location.lng.toFixed(5);
+        if(!group._posCount) group._posCount={};
+        group._posCount[posKey]=(group._posCount[posKey]||0)+1;
+        const posIdx=group._posCount[posKey]-1;
+        const angle=(posIdx*137.5)*(Math.PI/180); // Goldener Winkel
+        const offset=posIdx===0?0:0.00004*(1+Math.floor(posIdx/8));
+        const offsetLat=e.location.lat+Math.sin(angle)*offset;
+        const offsetLng=e.location.lng+Math.cos(angle)*offset;
+        L.circleMarker([offsetLat,offsetLng],{color:'#fff',weight:2,fillColor:dc,fillOpacity:0.95,radius:dr+1}).addTo(group).bindPopup(popup);
       });
       group.addTo(state.map);state.activeLayers[id]=group;
       if(header)header.classList.add('shown');if(actions)actions.classList.add('open');
@@ -1857,7 +1885,7 @@ window.addEventListener('load', function() {
 
     // ── Marker + Zeitachsen-Ticks ──
     const TC={mood:'#ea580c',thought:'#2563eb',sense:'#16a34a',voice:'#7c3aed',sound:'#7c3aed',photo:'#374151'};
-    const TLbl={mood:'Stimmung',thought:'Gedanke',sense:'Eindrücke',voice:'Sprache',sound:'Sound',photo:'Foto'};
+    const TLbl={mood:'Stimmung',thought:'Gedanke',sense:'Wahrnehm.',voice:'Sprache',sound:'Sound',photo:'Foto'};
     const TI={thought:'◆',sense:'▲',voice:'▶',sound:'◉',photo:'■'};
     const buckets={};
 
@@ -2114,7 +2142,7 @@ window.addEventListener('load', function() {
             .map(e=>({
               type:'Feature',
               properties:(()=>{
-                const TN={mood:'🔋 Stimmung',thought:'💭 Gedanke',sense:'👁 Wahrnehmung',
+                const TN={mood:'🔋 Stimmung',thought:'💭 Gedanke',sense:'👁 Eindrücke',
                   voice:'💬 Sprachnachricht',sound:'🎙 Umgebungssound',photo:'📸 Foto'};
                 const TC={mood:'#ea580c',thought:'#1e3a6e',sense:'#2d5a2d',
                   voice:'#7c3aed',sound:'#7c3aed',photo:'#374151'};
@@ -2180,7 +2208,7 @@ window.addEventListener('load', function() {
       const textEntries=walk.entries.filter(e=>e.text||(e.type==='mood'&&e.moodValue!=null));
       if(textEntries.length>0){
         let txt='EINTRÄGE: '+walk.name+'\n'+'='.repeat(40)+'\n';
-        const typeNames={mood:'Stimmung',thought:'Gedanke',sense:'Wahrnehmung',voice:'Sprachnachricht',sound:'Umgebungssound',photo:'Foto'};
+        const typeNames={mood:'Stimmung',thought:'Gedanke',sense:'Eindrücke',voice:'Sprachnachricht',sound:'Umgebungssound',photo:'Foto'};
         textEntries.forEach((e,i)=>{
           txt+='\n['+(i+1)+'] '+(typeNames[e.type]||e.type).toUpperCase();
           if(e.timestamp) txt+=' | '+e.timestamp;
@@ -2216,7 +2244,7 @@ window.addEventListener('load', function() {
     // Farben und Labels exakt wie in der App
     const TC={mood:'#ea580c',thought:'#2563eb',sense:'#16a34a',
               voice:'#7c3aed',sound:'#7c3aed',photo:'#374151'};
-    const TN={mood:'🔋 Stimmung',thought:'💭 Gedanke',sense:'👁 Wahrnehmung',
+    const TN={mood:'🔋 Stimmung',thought:'💭 Gedanke',sense:'👁 Eindrücke',
               voice:'💬 Sprachnachricht',sound:'🎙 Umgebungssound',photo:'📸 Foto'};
 
     const features=[];
@@ -2599,9 +2627,9 @@ window.addEventListener('load', function() {
       <div id="moodThumb" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid #facc15;box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;"></div>
     </div>
     <input type="range" id="moodSlider" min="1" max="5" value="3" step="1" style="width:100%;margin:-8px 0;opacity:0;height:32px;cursor:pointer;"/>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-top:-8px;"><span>1 — sehr tief</span><span>3 — neutral</span><span>5 — sehr hoch</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-top:-8px;"><span>1 — Stimmung bedrückt</span><span>3 — neutral</span><span>5 — sehr gute Stimmung</span></div>
     <div style="text-align:center;"><span id="moodVal" style="font-size:36px;font-weight:bold;color:#facc15;">3</span><span style="font-size:13px;color:#aaa;">/100</span></div>
-    <textarea id="moodText" placeholder="Notiz (optional)..." style="width:100%;height:56px;border-radius:10px;border:1.5px solid #e5e5e5;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
+    <textarea id="moodText" placeholder="Beschreibe deine Stimmung (optional)..." style="width:100%;height:56px;border-radius:10px;border:1.5px solid #e5e5e5;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
     <div style="display:flex;gap:10px;">
       <button id="moodCancel" style="flex:1;padding:13px;border-radius:12px;border:none;background:#f0f0f0;color:#555;font-weight:bold;font-size:12px;cursor:pointer;">Abbrechen</button>
       <button id="moodSave" style="flex:2;padding:13px;border-radius:12px;border:none;font-weight:bold;font-size:12px;cursor:pointer;color:#fff;background:#facc15;">Marker setzen</button>
@@ -2622,7 +2650,7 @@ window.addEventListener('load', function() {
 <!-- WAHRNEHMUNG-MODAL -->
 <div id="senseModal" style="display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:20px;padding:24px;width:min(92vw,340px);display:flex;flex-direction:column;gap:14px;">
-    <div style="font-size:13px;font-weight:bold;color:#111;text-align:center;">👁 Wahrnehmung</div>
+    <div style="font-size:13px;font-weight:bold;color:#111;text-align:center;">👁 Eindrücke</div>
     <textarea id="senseText" placeholder="Was nimmst du wahr?" style="width:100%;height:100px;border-radius:10px;border:1px solid #ddd;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
     <div style="display:flex;gap:8px;">
       <button id="senseCancel" style="flex:1;padding:12px;border-radius:10px;border:none;background:#f0f0f0;color:#555;font-weight:bold;font-size:11px;cursor:pointer;">Abbrechen</button>
