@@ -2719,7 +2719,7 @@ window.addEventListener('load', function() {
     }
 
     // Onboarding anzeigen — Version-Key damit neue Version immer erscheint
-    const OB_VERSION='v9';
+    const OB_VERSION='v10';
     if(localStorage.getItem('ob_done')!==OB_VERSION){
       document.getElementById('onboardingModal').style.display='flex';
     }
@@ -3124,6 +3124,18 @@ window.addEventListener('load', function() {
           ✅ Warte nach START bis der blaue Punkt erscheint<br>
           ✅ Exportiere nach dem Walk um alles zu sichern
         </div>
+        <div style="background:#f8f8f8;border-radius:10px;padding:12px 14px;font-size:11px;color:#374151;line-height:1.8;border:1px solid #e5e5e5;">
+          <b>📡 GPS-Statusanzeige:</b><br>
+          Während der Aufzeichnung siehst du neben START/STOP:<br>
+          <span style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+            <b style="color:#16a34a;">GPS aktiv</b> — Signal vorhanden, Route wird aufgezeichnet
+          </span><br>
+          <span style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+            <b style="color:#dc2626;">GPS verloren</b> — kein Signal, Route wird unterbrochen
+          </span>
+        </div>
         <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.8;">
           <b>📦 Export nach dem Walk:</b><br>
           Archiv → Walk antippen → <b>📦 Export</b><br><br>
@@ -3131,6 +3143,32 @@ window.addEventListener('load', function() {
           Weiterleiten per Whatsapp oder Mail<br><br>
           🤖 <b>Android:</b> ZIP landet im <b>Downloads-Ordner</b><br>
           Weiterleiten per WhatsApp oder Mail
+        </div>
+      </div>
+
+
+      <!-- Schritt 7 — Auto-Save & Wiederherstellung -->
+      <div class="ob-step" data-step="7" style="display:none;flex-direction:column;gap:12px;">
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:40px;">💾</div>
+          <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Datensicherheit</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:6px;line-height:1.6;">Deine Daten sind automatisch geschützt</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px;border-left:4px solid #16a34a;font-size:11px;color:#166534;line-height:1.8;">
+            <b>🔄 Auto-Save</b><br>
+            Die App speichert deinen laufenden Walk automatisch — alle 10 Sekunden sowie bei jedem neuen GPS-Punkt und jedem Eintrag (Foto, Audio, Stimmung...).<br><br>
+            Auch wenn das GPS abbricht oder die Seite abstürzt, sind deine Daten gesichert.
+          </div>
+          <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;border-left:4px solid #f97316;font-size:11px;color:#92400e;line-height:1.8;">
+            <b>⚠️ Wenn etwas schiefgeht:</b><br>
+            Öffne die App einfach wieder — es erscheint oben ein <b style="color:#dc2626;">roter Banner</b>:<br>
+            <span style="background:#dc2626;color:#fff;border-radius:6px;padding:2px 8px;font-size:10px;display:inline-block;margin-top:4px;">⚠️ Unterbrochener Walk gefunden!</span><br><br>
+            Tippe auf <b>💾 Wiederherstellen</b> — der Walk wird sofort ins Archiv gespeichert.
+          </div>
+          <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;font-size:11px;color:#1e3a6e;line-height:1.7;">
+            🔒 <b>Datenschutz:</b> Alle Daten bleiben ausschließlich auf deinem Gerät. Es wird nichts automatisch übertragen oder in einer Cloud gespeichert.
+          </div>
         </div>
       </div>
 
@@ -3147,6 +3185,7 @@ window.addEventListener('load', function() {
         <div class="ob-dot" data-dot="4" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
         <div class="ob-dot" data-dot="5" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
         <div class="ob-dot" data-dot="6" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
+        <div class="ob-dot" data-dot="7" style="width:8px;height:8px;border-radius:50%;background:#ddd;"></div>
       </div>
       <!-- Buttons -->
       <div style="display:flex;gap:8px;align-items:center;">
