@@ -220,7 +220,7 @@
   </div>
 </div>
 <!-- Wo bin ich Button -->
-<button id="btnLocate" style="display:none;position:fixed;bottom:24px;right:16px;z-index:1002;width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 4px 16px rgba(0,0,0,0.2);cursor:pointer;font-size:22px;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">📍</button>
+<button id="btnLocate" style="display:none;position:fixed;bottom:24px;right:16px;z-index:1002;height:44px;padding:0 16px;border-radius:22px;border:none;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 4px 16px rgba(0,0,0,0.2);cursor:pointer;font-size:13px;font-weight:bold;color:#333;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent;white-space:nowrap;">📍 Wo bin ich?</button>
 <div id="panelToggles">
   <button class="panel-tab" data-panel="ansicht">🗺 Ansicht</button>
   <button class="panel-tab" data-panel="ebenen">☰ Ebenen</button>
@@ -872,6 +872,8 @@ window.addEventListener('load', function() {
     dot.classList.add('active');
     if(lbl)lbl.textContent='GPS aktiv';
     if(_gpsLostTimer){clearTimeout(_gpsLostTimer);_gpsLostTimer=null;}
+    // Marker grün wenn Walk aktiv
+    if(state.liveMarker&&state.current) state.liveMarker.setIcon(makeLiveMarkerIcon(true,false));
   }
   function setGpsLost(){
     const dot=document.getElementById('gpsDot');
@@ -881,6 +883,24 @@ window.addEventListener('load', function() {
     dot.style.boxShadow='0 0 0 3px rgba(239,68,68,0.25)';
     dot.classList.remove('active');
     if(lbl)lbl.textContent='GPS verloren';
+    // Marker rot wenn GPS verloren
+    if(state.liveMarker) state.liveMarker.setIcon(makeLiveMarkerIcon(false,true));
+  }
+
+  // Live-Marker Icon: blau ohne Walk, grün mit Walk aktiv, rot bei GPS verloren
+  function makeLiveMarkerIcon(recording, lost){
+    const color = lost ? '#ef4444' : recording ? '#22c55e' : '#2563eb';
+    const ringColor = lost ? 'rgba(239,68,68,0.25)' : recording ? 'rgba(34,197,94,0.25)' : 'rgba(37,99,235,0.2)';
+    const speed = lost ? 'none' : recording ? '1.2s' : '2s';
+    return L.divIcon({
+      className:'',
+      html:'<div style="position:relative;width:20px;height:20px;">'
+        +'<div style="position:absolute;inset:0;border-radius:50%;background:'+ringColor+';animation:gpsRing '+speed+' ease-out infinite;"></div>'
+        +'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:'+color+';border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>'
+        +'</div>',
+      iconSize:[20,20],
+      iconAnchor:[10,10]
+    });
   }
 
   navigator.geolocation.watchPosition(pos=>{
@@ -898,15 +918,7 @@ window.addEventListener('load', function() {
     const ll=[smoothLat,smoothLng],now=Date.now();
     if(!state.liveMarker){
       state.liveMarker=L.marker(ll,{
-        icon:L.divIcon({
-          className:'',
-          html:'<div style="position:relative;width:20px;height:20px;">'
-            +'<div style="position:absolute;inset:0;border-radius:50%;background:rgba(37,99,235,0.2);animation:gpsRing 2s ease-out infinite;"></div>'
-            +'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#2563eb;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>'
-            +'</div>',
-          iconSize:[20,20],
-          iconAnchor:[10,10]
-        }),
+        icon:makeLiveMarkerIcon(false),
         zIndexOffset:1000
       }).addTo(state.map);
       // Sofort auf GPS-Position zentrieren
@@ -974,6 +986,8 @@ window.addEventListener('load', function() {
     // GPS Status-Anzeige einblenden
     const gpsEl=document.getElementById('gpsStatus');
     if(gpsEl){gpsEl.style.display='flex';setGpsLost();} // Startet rot bis Signal kommt
+    // Marker auf Aufzeichnungs-Modus (wird grün wenn Signal kommt)
+    if(state.liveMarker) state.liveMarker.setIcon(makeLiveMarkerIcon(false,true));
     // Auto-Save starten — alle 30 Sekunden
     if(window._autoSaveInterval) clearInterval(window._autoSaveInterval);
     window._autoSaveInterval=setInterval(()=>{
@@ -1003,6 +1017,8 @@ window.addEventListener('load', function() {
     // GPS Status-Anzeige ausblenden
     const gpsEl2=document.getElementById('gpsStatus');
     if(gpsEl2) gpsEl2.style.display='none';
+    // Marker zurück auf blau (kein aktiver Walk)
+    if(state.liveMarker) state.liveMarker.setIcon(makeLiveMarkerIcon(false,false));
     if(_gpsLostTimer){clearTimeout(_gpsLostTimer);_gpsLostTimer=null;}
     // Auto-Save stoppen und temporären Walk löschen
     if(window._autoSaveInterval){clearInterval(window._autoSaveInterval);window._autoSaveInterval=null;}
@@ -2818,7 +2834,7 @@ window.addEventListener('load', function() {
       hint.innerHTML='<b>🤖 Android erkannt:</b><br>Verwende <b>Chrome</b> als Browser. Wähle bei der Standort-Abfrage <b>"Immer erlauben"</b>.';
     } else {
       hint.style.cssText='background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;';
-      hint.innerHTML='<b>💡 Wichtig:</b><br>Auf dem Handy: iPhone → Safari, Android → Chrome verwenden.';
+      hint.innerHTML='<b>💡 Tipp:</b><br>Auf dem Handy: iPhone → Safari, Android → Chrome verwenden.';
     }
 
     // Display-Hinweis Schritt 4
@@ -2997,7 +3013,7 @@ window.addEventListener('load', function() {
         </div>
       </div>
       <div style="background:#f9f9f9;border-radius:10px;padding:10px 12px;border-left:3px solid #f97316;">
-        <div style="font-size:11px;font-weight:bold;color:#374151;margin-bottom:5px;">Welche Momente blieb am stärksten in Erinnerung?</div>
+        <div style="font-size:11px;font-weight:bold;color:#374151;margin-bottom:5px;">Welcher Moment blieb am stärksten in Erinnerung?</div>
         <textarea id="rqMoment" rows="2" placeholder="Ort, Situation, Eindruck..." style="width:100%;font-size:12px;padding:8px;border-radius:8px;border:1px solid #ddd;resize:none;font-family:sans-serif;background:#fff;"></textarea>
       </div>
       <div style="background:#f9f9f9;border-radius:10px;padding:10px 12px;border-left:3px solid #22c55e;">
@@ -3005,7 +3021,7 @@ window.addEventListener('load', function() {
         <textarea id="rqOrte" rows="2" placeholder="Park, Kreuzung, Lärm..." style="width:100%;font-size:12px;padding:8px;border-radius:8px;border:1px solid #ddd;resize:none;font-family:sans-serif;background:#fff;"></textarea>
       </div>
       <div style="background:#f9f9f9;border-radius:10px;padding:10px 12px;border-left:3px solid #3b82f6;">
-        <div style="font-size:11px;font-weight:bold;color:#374151;margin-bottom:5px;">Was war bedeutsam aber wurde nicht aufgezeichnet? Gibt es etwas was Das Begleitinstrument nicht aufzeichnen kann, aber sollte?</div>
+        <div style="font-size:11px;font-weight:bold;color:#374151;margin-bottom:5px;">Was war bedeutsam aber nicht aufgezeichnet?</div>
         <textarea id="rqNicht" rows="2" placeholder="Was fehlt in den Daten?" style="width:100%;font-size:12px;padding:8px;border-radius:8px;border:1px solid #ddd;resize:none;font-family:sans-serif;background:#fff;"></textarea>
       </div>
       <div style="background:#f9f9f9;border-radius:10px;padding:10px 12px;border-left:3px solid #BA7517;">
@@ -3028,7 +3044,7 @@ window.addEventListener('load', function() {
     </div>
     <input type="range" id="moodSlider" min="1" max="5" value="3" step="1" style="width:100%;margin:-8px 0;opacity:0;height:32px;cursor:pointer;"/>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa;margin-top:-8px;"><span>1 — Stimmung bedrückt</span><span>3 — neutral</span><span>5 — sehr gute Stimmung</span></div>
-    <div style="text-align:center;"><span id="moodVal" style="font-size:36px;font-weight:bold;color:#facc15;">3</span><span style="font-size:13px;color:#aaa;">/5</span></div>
+    <div style="text-align:center;"><span id="moodVal" style="font-size:36px;font-weight:bold;color:#facc15;">3</span><span style="font-size:13px;color:#aaa;">/100</span></div>
     <textarea id="moodText" placeholder="Beschreibe deine Stimmung (optional)..." style="width:100%;height:56px;border-radius:10px;border:1.5px solid #e5e5e5;padding:10px;font-size:13px;resize:none;font-family:sans-serif;"></textarea>
     <div style="display:flex;gap:10px;">
       <button id="moodCancel" style="flex:1;padding:13px;border-radius:12px;border:none;background:#f0f0f0;color:#555;font-weight:bold;font-size:12px;cursor:pointer;">Abbrechen</button>
@@ -3081,7 +3097,7 @@ window.addEventListener('load', function() {
     <div style="background:#111;border-radius:20px 20px 0 0;padding:20px 20px 16px;text-align:center;flex-shrink:0;">
       <div style="font-size:28px;margin-bottom:8px;"></div>
       <div style="font-size:16px;font-weight:bold;color:#fff;">Begleitinstrument</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Was passiert alles auf deinem Spaziergang? Halte Eindrücke und deine Wahrnehmung mit dem Begleitinstrument fest</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Was erlebst du während deines Spazierganges?</div>
     </div>
 
     <!-- Schritte -->
@@ -3092,7 +3108,7 @@ window.addEventListener('load', function() {
         <div style="text-align:center;padding:8px 0;">
           <div style="font-size:40px;">📍</div>
           <div style="font-size:15px;font-weight:bold;color:#111;margin-top:8px;">Willkommen!</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;"> Was passiert alles auf deinem Spaziergang? Halte Eindrücke und deine Wahrnehmung mit dem Begleitinstrument fest. Diese Webbasierte-App begleitet dich auf Spaziergängen und zeichnet auf was du erlebst — Route, Stimmung, Gedanken, Fotos und Audio</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.6;">Diese Webbasierte-App begleitet dich bei einem Spaziergang und zeichnet auf was du erlebst — Route, Stimmung, Gedanken, Fotos und Audio.</div>
         </div>
         <div style="background:#f0f4ff;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e3a6e;line-height:1.7;">
           <b>Bevor du startest:</b><br>
@@ -3119,7 +3135,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">⏹️</span>
-            <div><b style="font-size:12px;">STOP / SAVE</b><br><span style="font-size:11px;color:#6b7280;">Walk beenden, Namen vergeben und der Spaziergang wird im Archiv gespeichert.</span></div>
+            <div><b style="font-size:12px;">STOP / SAVE</b><br><span style="font-size:11px;color:#6b7280;">Walk beenden, Namen vergeben und speichern.</span></div>
           </div>
         </div>
       </div>
@@ -3133,7 +3149,7 @@ window.addEventListener('load', function() {
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📂</span>
-            <div><b style="font-size:12px;">Archiv öffnen</b><br><span style="font-size:11px;color:#6b7280;">Tippe oben rechts auf "Archiv" um deine Spaziergang auf der Map zu sehen sowie Umzubenennen, zu Exportieren und zu Löschen.</span></div>
+            <div><b style="font-size:12px;">Archiv öffnen</b><br><span style="font-size:11px;color:#6b7280;">Tippe oben rechts auf "Archiv" um deine Walks auf der Map zu sehen sowie Umzubenennen, zu Exportieren und zu Löschen.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:10px 12px;">
             <span style="font-size:22px;">📋</span>
@@ -3145,7 +3161,7 @@ window.addEventListener('load', function() {
           </div>
           <div style="background:#f0f4ff;border-radius:10px;padding:10px 12px;font-size:11px;color:#1e3a6e;line-height:1.8;">
             <b>Wo findest du den Export?</b><br>
-            Archiv → Spaziergang im Archiv antippen → Aktionen aufklappen → <b>📦 Export</b><br><br>
+            Archiv → Walk antippen → Aktionen aufklappen → <b>📦 Export</b><br><br>
             📱 <b>iPhone:</b> Die ZIP-Datei landet in <b>Dateien → Downloads</b>. Von dort per Whatsapp oder Mail senden.<br>
             🤖 <b>Android:</b> Die ZIP-Datei landet im <b>Downloads-Ordner</b>. Von dort per Whatsapp oder Mail senden.
           </div>
@@ -3230,7 +3246,7 @@ window.addEventListener('load', function() {
         </div>
         <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;border-left:4px solid #f97316;font-size:11px;color:#92400e;line-height:1.8;">
           <b>Display aktiv halten!</b><br>
-          Wenn aus dem Browser während des Spaziergang herausgehst, unterbricht die GPS-Aufzeichnung. Beim wieder öffnen der Seite zeichnet das GPS wieder mit dem aktuellen Standort wieder auf<br><br>
+          Wenn sich der Bildschirm abdunkelt, kann die GPS-Aufzeichnung unterbrechen.<br><br>
           <span id="ob-display-hint"></span>
         </div>
         <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px;font-size:11px;color:#166534;line-height:1.7;">
@@ -3271,7 +3287,7 @@ window.addEventListener('load', function() {
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px;border-left:4px solid #16a34a;font-size:11px;color:#166534;line-height:1.8;">
             <b>🔄 Auto-Save</b><br>
-            Die App speichert deinen laufenden Walk — alle 10 Sekunden sowie bei jedem neuen GPS-Punkt und jedem Eintrag (Foto, Audio, Stimmung...).<br><br>
+            Die App speichert deinen laufenden Walk automatisch — alle 10 Sekunden sowie bei jedem neuen GPS-Punkt und jedem Eintrag (Foto, Audio, Stimmung...).<br><br>
             Auch wenn das GPS abbricht oder die Seite abstürzt, sind deine Daten gesichert.
           </div>
           <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;border-left:4px solid #f97316;font-size:11px;color:#92400e;line-height:1.8;">
